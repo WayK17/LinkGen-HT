@@ -32,7 +32,7 @@ Ejemplo de respuesta exitosa (JSON):
   "fileName": "mi_archivo_genial.zip",
   "fileSize": "123.45 MB",
   "mediafireURL": "[https://www.mediafire.com/file/](https://www.mediafire.com/file/)...",
-  "credit": "Developer: @labani"
+  "credit": "Developer: @WayK17"
 }
 
 💬 Comunidad
