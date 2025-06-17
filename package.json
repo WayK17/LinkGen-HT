@@ -1,0 +1,22 @@
+{
+  "name": "mediafire-extract-api",
+  "version": "1.0.0",
+  "main": "mediafire-extract-api.js",
+  "scripts": {
+    "start": "node mediafire-extract-api.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.4.0",
+    "cheerio": "^1.0.0",
+    "cors": "^2.8.5"
+  },
+  "keywords": [
+    "mediafire",
+    "api",
+    "express",
+    "vercel"
+  ],
+  "author": "@labani",
+  "license": "MIT"
+}

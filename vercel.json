@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "mediafire-extract-api.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api",
+      "dest": "/mediafire-extract-api.js"
+    },
+    {
+      "src": "/api\\?url=(.*)", 
+      "dest": "/mediafire-extract-api.js?url=$1"
+    }
+  ]
+}
