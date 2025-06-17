@@ -1,6 +1,6 @@
 {
-  "name": "mediafire-extract-api",
-  "version": "1.0.0",
+  "name": "mediafire-extract-api-improved",
+  "version": "2.0.0",
   "main": "mediafire-extract-api.js",
   "scripts": {
     "start": "node mediafire-extract-api.js"
@@ -9,14 +9,19 @@
     "express": "^4.18.2",
     "axios": "^1.4.0",
     "cheerio": "^1.0.0",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "express-rate-limit": "^7.2.0",
+    "node-cache": "^5.1.2",
+    "dotenv": "^16.4.5"
   },
   "keywords": [
     "mediafire",
     "api",
     "express",
-    "vercel"
+    "vercel",
+    "cache",
+    "rate-limit"
   ],
-  "author": "@labani",
+  "author": "@Xinz",
   "license": "MIT"
 }
