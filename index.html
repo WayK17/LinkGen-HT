@@ -78,7 +78,7 @@
       </div>
     </div>
 
-    <script>
+        <script>
       async function generarEnlace() {
         const urlInput = document.getElementById('mediafireUrl');
         const resultadoDiv = document.getElementById('resultado');
@@ -92,24 +92,26 @@
         resultadoDiv.innerHTML = `<div class="p-3 rounded-xl bg-gray-700 bg-opacity-50 text-gray-300">Generando enlace, por favor espera...</div>`;
 
         try {
-          const apiUrl = \`/api/mediafire?url=\${encodeURIComponent(url)}\`;
+          const apiUrl = `/api/mediafire?url=${encodeURIComponent(url)}`;
           const response = await fetch(apiUrl);
           const data = await response.json();
 
-          if (response.ok) {
-            resultadoDiv.innerHTML = \`
+          // CORRECCIÓN 1: Se usa "data.directLink" que es lo que la API envía.
+          if (response.ok && data.directLink) {
+            // CORRECCIÓN 2: Se eliminaron las barras invertidas (\) innecesarias para arreglar la sintaxis.
+            resultadoDiv.innerHTML = `
               <div class="p-4 rounded-xl bg-green-900 bg-opacity-50 border border-green-700 text-white flex flex-col items-center gap-3">
                   <span class="font-bold">¡Enlace generado con éxito!</span>
-                  <input class="w-full bg-gray-900 text-green-300 rounded-lg p-2 border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500" readonly value="\${data.file_direct_link}" />
-                  <button onclick="copiarAlPortapapeles('\${data.file_direct_link}')" class="w-full mt-2 rounded-lg bg-green-600 hover:bg-green-500 transition-colors py-2 px-4 font-semibold">Copiar Enlace</button>
+                  <input class="w-full bg-gray-900 text-green-300 rounded-lg p-2 border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500" readonly value="${data.directLink}" />
+                  <button onclick="copiarAlPortapapeles('${data.directLink}')" class="w-full mt-2 rounded-lg bg-green-600 hover:bg-green-500 transition-colors py-2 px-4 font-semibold">Copiar Enlace</button>
               </div>
-            \`;
+            `;
           } else {
-            resultadoDiv.innerHTML = \`<div class="p-3 rounded-xl bg-red-900 bg-opacity-50 border border-red-700 text-red-300">Error: \${data.error || 'No se pudo generar el enlace.'}</div>\`;
+            resultadoDiv.innerHTML = `<div class="p-3 rounded-xl bg-red-900 bg-opacity-50 border border-red-700 text-red-300">Error: ${data.error || 'No se pudo generar el enlace.'}</div>`;
           }
         } catch (error) {
           console.error('Error en fetch:', error);
-          resultadoDiv.innerHTML = \`<div class="p-3 rounded-xl bg-red-900 bg-opacity-50 border border-red-700 text-red-300">Error al conectar con el servidor. Inténtalo de nuevo.</div>\`;
+          resultadoDiv.innerHTML = `<div class="p-3 rounded-xl bg-red-900 bg-opacity-50 border border-red-700 text-red-300">Error al conectar con el servidor. Inténtalo de nuevo.</div>`;
         }
       }
 
