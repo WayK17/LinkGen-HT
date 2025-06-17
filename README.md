@@ -1,45 +1,44 @@
-# 🚀 LinkGen - Generador de Enlaces Directos para MediaFire
+# 🔥 API para Extraer Enlaces Directos de MediaFire
 
 ![Licencia](https://img.shields.io/badge/Licencia-MIT-green.svg)
 ![Versión](https://img.shields.io/badge/Versi%C3%B3n-2.0.0-blue.svg)
 
-Una herramienta web moderna y eficiente que convierte enlaces de MediaFire en enlaces de descarga directa. Cuenta con una interfaz limpia y una API potente para obtener archivos de forma rápida y sin anuncios.
+Una API ligera y eficiente para extraer enlaces de descarga directa de MediaFire, obteniendo también el nombre y el peso del archivo. Ideal para desplegar fácilmente en Vercel.
 
 ---
 
-## ✨ Características
+## 🚀 Características Principales
 
-* **Interfaz Moderna:** Diseño web intuitivo y responsive para una experiencia de usuario fluida en cualquier dispositivo.
-* **Generación Instantánea:** Obtiene enlaces de descarga directa de archivos de MediaFire al instante.
-* **Información del Archivo:** Extrae automáticamente el nombre y el peso del archivo.
-* **API Robusta:** La API backend está habilitada para CORS, implementa caché y es fácilmente desplegable en Vercel.
-* **Comunidad Activa:** Soporte y actualizaciones a través del canal de Telegram.
+* ✅ Obtiene el enlace de descarga directa de cualquier archivo de MediaFire.
+* ✅ Extrae el nombre y el peso del archivo.
+* ✅ Habilitado para CORS, permitiendo peticiones desde cualquier origen.
+* ✅ Implementa un sistema de caché para respuestas más rápidas.
+* ✅ Diseñado para ser desplegado sin esfuerzo en plataformas como Vercel.
 
 ---
 
 ## ⚙️ Uso de la API
 
-La API es el motor de la aplicación. Para usarla de forma independiente, realiza una petición GET a la ruta `/api/mediafire` con la URL del archivo.
+Para utilizar la API, simplemente realiza una petición GET a la ruta `/api/mediafire`, pasando la URL del archivo de MediaFire como parámetro.
 
-**Ejemplo con `cURL`:**
+**Ejemplo usando `cURL`:**
 
 ```bash
 curl "[https://tu-app.vercel.app/api/mediafire?url=](https://tu-app.vercel.app/api/mediafire?url=)<URL_DEL_ARCHIVO_MEDIAFIRE>"
 
-Ejemplo de respuesta JSON:
+Ejemplo de respuesta exitosa (JSON):
 {
   "directLink": "[https://download2390.mediafire.com/](https://download2390.mediafire.com/)...",
-  "fileName": "tu_archivo.zip",
+  "fileName": "mi_archivo_genial.zip",
   "fileSize": "123.45 MB",
   "mediafireURL": "[https://www.mediafire.com/file/](https://www.mediafire.com/file/)...",
   "credit": "Developer: @labani"
 }
 
-💬 Comunidad y Soporte
+💬 Comunidad
 ¿Tienes dudas, sugerencias o quieres estar al tanto de las actualizaciones?
-➡️ Únete al canal oficial en Telegram: Ness Cloud
-👨‍💻 Desarrollo
- * Desarrollo y mejoras: Ness Cloud
- * API Base por: [@labani]
+➡️ Únete a nuestro canal de Telegram: Ness Cloud
+👨‍💻 Créditos
+ * Desarrollador original de la API: [@labani]
 <!-- end list -->
 
