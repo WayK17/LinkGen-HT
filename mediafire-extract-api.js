@@ -1,30 +1,8 @@
-const express = require("express");
 const axios = require("axios");
 const cheerio = require("cheerio");
-const cors = require("cors");
-const rateLimit = require('express-rate-limit');
-const NodeCache = require('node-cache');
-require('dotenv').config(); // Carga las variables de entorno del archivo .env
 
-const app = express();
-const port = 3000;
-
-// --- MEJORAS IMPLEMENTADAS ---
-
-// 1. Caché en memoria para mejorar el rendimiento (TTL de 1 hora)
-// Guarda los resultados de una URL para no tener que procesarla de nuevo.
-const myCache = new NodeCache({ stdTTL: 3600 });
-
-// 2. Límite de tasa para prevenir abusos (15 peticiones por minuto por IP)
-const limiter = rateLimit({
-	windowMs: 1 * 60 * 1000, // 1 minuto
-	max: 15,
-	standardHeaders: true,
-	legacyHeaders: false,
-    message: { error: 'Demasiadas solicitudes, por favor intente de nuevo más tarde.' }
-});
-
-// --- LÓGICA DE SCRAPING MODULARIZADA ---
+// Caché simple en memoria (limitado en serverless, pero útil para la misma ejecución)
+const cache = new Map();
 
 /**
  * Extrae la información de una URL de MediaFire.
@@ -34,7 +12,7 @@ const limiter = rateLimit({
  */
 async function extractMediafireData(mediafireURL) {
     try {
-        // 3. Timeout en la solicitud para mayor robustez (10 segundos)
+        // Timeout en la solicitud para mayor robustez (10 segundos)
         const response = await axios.get(mediafireURL, {
             headers: { 'User-Agent': 'Mozilla/5.0' },
             timeout: 10000 
@@ -53,7 +31,7 @@ async function extractMediafireData(mediafireURL) {
             throw new Error('No se pudo encontrar el enlace de descarga o la información del archivo.');
         }
     } catch (error) {
-        // 4. Manejo de errores de Axios más específico
+        // Manejo de errores de Axios más específico
         if (axios.isAxiosError(error)) {
             if (error.response) {
                 // El servidor de MediaFire respondió con un código de error (404, 500, etc.)
@@ -68,75 +46,58 @@ async function extractMediafireData(mediafireURL) {
     }
 }
 
+// Función principal para Vercel
+module.exports = async (req, res) => {
+    // Configurar CORS
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-// --- CONFIGURACIÓN DE LA APP EXPRESS ---
+    // Manejar preflight requests
+    if (req.method === 'OPTIONS') {
+        res.status(200).end();
+        return;
+    }
 
-// Habilita CORS para todas las solicitudes
-app.use(cors());
+    // Solo permitir GET requests
+    if (req.method !== 'GET') {
+        return res.status(405).json({ error: 'Método no permitido' });
+    }
 
-// --- ENDPOINT DE LA API MEJORADO ---
+    const mediafireURL = req.query.url;
 
-/**
- * @api {get} /api Obtiene el enlace de descarga directa de MediaFire
- * @apiName GetMediafireLink
- * @apiGroup Mediafire
- *
- * @apiParam {String} url La URL del archivo de MediaFire a procesar.
- *
- * @apiSuccess {String} directLink El enlace de descarga directa.
- * @apiSuccess {String} fileName El nombre del archivo.
- * @apiSuccess {String} fileSize El tamaño del archivo.
- * @apiSuccess {String} mediafireURL La URL original solicitada.
- * @apiSuccess {String} credit El crédito del desarrollador.
- */
-app.get('/api', limiter, async (req, res) => {
-  const mediafireURL = req.query.url;
-
-  if (!mediafireURL) {
-    return res.status(400).json({ error: 'El parámetro URL es requerido' });
-  }
-  if (!mediafireURL.startsWith("https://www.mediafire.com/file/")) {
-    return res.status(400).json({ error: 'Enlace de MediaFire inválido' });
-  }
-
-  // Verificar si el resultado ya está en el caché
-  if (myCache.has(mediafireURL)) {
-    console.log(`[Cache] HIT para: ${mediafireURL}`);
-    return res.json(myCache.get(mediafireURL));
-  }
-  
-  console.log(`[Cache] MISS para: ${mediafireURL}`);
-
-  try {
-    const data = await extractMediafireData(mediafireURL);
+    if (!mediafireURL) {
+        return res.status(400).json({ error: 'El parámetro URL es requerido' });
+    }
     
-    const responsePayload = {
-        ...data,
-        mediafireURL,
-        // 5. Usar variable de entorno para el crédito
-        credit: process.env.DEVELOPER_CREDIT || 'Developer: @labani'
-    };
-    
-    // Guardar el resultado en el caché antes de enviarlo
-    myCache.set(mediafireURL, responsePayload);
+    if (!mediafireURL.startsWith("https://www.mediafire.com/file/")) {
+        return res.status(400).json({ error: 'Enlace de MediaFire inválido' });
+    }
 
-    res.json(responsePayload);
+    // Verificar si el resultado ya está en el caché
+    if (cache.has(mediafireURL)) {
+        console.log(`[Cache] HIT para: ${mediafireURL}`);
+        return res.json(cache.get(mediafireURL));
+    }
 
-  } catch (error) {
-    // Devuelve el error específico capturado en la función de extracción
-    res.status(500).json({ error: 'Error del servidor.', details: error.toString() });
-  }
-});
+    console.log(`[Cache] MISS para: ${mediafireURL}`);
 
-// Manejar rutas no encontradas
-app.use((req, res) => {
-  res.status(404).json({ error: 'Ruta no encontrada' });
-});
+    try {
+        const data = await extractMediafireData(mediafireURL);
 
-// Iniciar servidor
-app.listen(port, () => {
-  console.log(`MediaFire API (Mejorada) escuchando en http://localhost:${port}`);
-});
+        const responsePayload = {
+            ...data,
+            mediafireURL,
+            credit: 'Developer: @labani'
+        };
 
-// Exportar para Vercel
-module.exports = app;
+        // Guardar el resultado en el caché antes de enviarlo
+        cache.set(mediafireURL, responsePayload);
+
+        res.json(responsePayload);
+
+    } catch (error) {
+        // Devuelve el error específico capturado en la función de extracción
+        res.status(500).json({ error: 'Error del servidor.', details: error.toString() });
+    }
+};
