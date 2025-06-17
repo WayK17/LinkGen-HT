@@ -8,12 +8,12 @@
   ],
   "routes": [
     {
-      "src": "/api",
+      "src": "/api(.*)",
       "dest": "/mediafire-extract-api.js"
     },
     {
-      "src": "/api\\?url=(.*)", 
-      "dest": "/mediafire-extract-api.js?url=$1"
+      "src": "/(.*)",
+      "dest": "/public/$1"
     }
   ]
 }
