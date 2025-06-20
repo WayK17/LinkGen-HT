@@ -1,3 +1,4 @@
+# Importaciones de librerías externas (estas están bien)
 from cloudscraper import create_scraper
 from hashlib import sha256
 from http.cookiejar import MozillaCookieJar
@@ -13,11 +14,39 @@ from urllib3.util.retry import Retry
 from uuid import uuid4
 from base64 import b64decode, b64encode
 
-from ....core.config_manager import Config
-from ...ext_utils.exceptions import DirectDownloadLinkException
-from ...ext_utils.help_messages import PASSWORD_ERROR_MESSAGE
-from ...ext_utils.links_utils import is_share_link
-from ...ext_utils.status_utils import speed_string_to_bytes
+# Importaciones para el manejador de Vercel
+from http.server import BaseHTTPRequestHandler
+import json
+
+# =================================================================
+# INICIAN LAS CORRECCIONES - PIEZAS FALTANTES AÑADIDAS
+# =================================================================
+
+class DirectDownloadLinkException(Exception):
+    pass
+
+class Config:
+    # Puedes añadir tus API keys aquí en el futuro si las necesitas
+    FILELION_API = ""
+    STREAMWISH_API = ""
+
+PASSWORD_ERROR_MESSAGE = "This link is password protected. Please provide the password in the format: {0}::password"
+
+def speed_string_to_bytes(size_string):
+    size_string = str(size_string).lower()
+    if 'kb' in size_string:
+        return float(size_string.replace('kb','').strip()) * 1024
+    elif 'mb' in size_string:
+        return float(size_string.replace('mb','').strip()) * 1024 * 1024
+    elif 'gb' in size_string:
+        return float(size_string.replace('gb','').strip()) * 1024 * 1024 * 1024
+    elif 'tb' in size_string:
+        return float(size_string.replace('tb','').strip()) * 1024 * 1024 * 1024 * 1024
+    return 0
+
+# =================================================================
+# TERMINAN LAS CORRECCIONES
+# =================================================================
 
 user_agent = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0"
