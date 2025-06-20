@@ -18,7 +18,7 @@
 ---
 
 <p align="center">
-  <img src="URL_DEL_GIF_DE_DEMOSTRACION_AQUI" alt="Demostración de LinkGen Universal">
+  <img src="https://envs.sh/ERU.jpg" alt="Demostración de LinkGen Universal">
 </p>
 
 ## ✨ Características Principales
