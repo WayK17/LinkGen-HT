@@ -8,178 +8,163 @@
       rel="stylesheet"
       as="style"
       onload="this.rel='stylesheet'"
-      href="https://fonts.googleapis.com/css2?display=swap&family=Inter%3Awght%40400%3B500%3B700%3B900&family=Noto+Sans%3Awght%40400%3B500%3B700%3B900"
+      href="https://fonts.googleapis.com/css2?display=swap&family=Noto+Sans%3Awght%40400%3B500%3B700%3B900&family=Space+Grotesk%3Awght%40400%3B500%3B700"
     />
-    <title>Generador de Enlaces Mediafire</title>
+
+    <title>LinkGen Universal</title>
     <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64," />
+
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
   </head>
-  <body>
+  <body class="bg-[#101323]">
     <div
-      class="relative flex size-full min-h-screen flex-col bg-[#111418] dark justify-between group/design-root overflow-x-hidden"
-      style='font-family: Inter, "Noto Sans", sans-serif;'
+      class="relative flex size-full min-h-screen flex-col bg-[#101323] dark justify-between group/design-root overflow-x-hidden"
+      style='font-family: "Space Grotesk", "Noto Sans", sans-serif;'
     >
       <div>
-        <div class="@container">
-          <div class="@[480px]:p-4">
-            <div
-              class="flex min-h-[480px] flex-col gap-6 bg-cover bg-center bg-no-repeat @[480px]:gap-8 @[480px]:rounded-xl items-center justify-center p-4"
-              style='background-image: linear-gradient(rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.4) 100%), url("https://images.unsplash.com/photo-1554302241-52b86d18f272?q=80&w=2070&auto=format&fit=crop");'
-            >
-              <div class="flex flex-col gap-2 text-center">
-                <h1
-                  class="text-white text-4xl font-black leading-tight tracking-[-0.033em] @[480px]:text-5xl @[480px]:font-black @[480px]:leading-tight @[480px]:tracking-[-0.033em]"
-                >
-                  Generador de Enlaces Directos Mediafire
-                </h1>
-                <h2 class="text-white text-sm font-normal leading-normal @[480px]:text-base @[480px]:font-normal @[480px]:leading-normal">
-                  Convierte tus enlaces de Mediafire en enlaces de descarga directa.
-                </h2>
-              </div>
-              <div class="w-full max-w-[480px] flex flex-col gap-4">
-                <label class="flex flex-col min-w-40 h-14 w-full @[480px]:h-16">
-                  <div class="flex w-full flex-1 items-stretch rounded-xl h-full">
-                    <div
-                      class="text-[#9cabba] flex border border-[#3b4754] bg-[#1b2127] items-center justify-center pl-[15px] rounded-l-xl border-r-0"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" fill="currentColor" viewBox="0 0 256 256">
-                        <path
-                          d="M144,128a16,16,0,1,1-16-16A16,16,0,0,1,144,128ZM128,64a12,12,0,0,0-12,12V99.55a40,40,0,1,0,24,0V76A12,12,0,0,0,128,64Zm80,104a12,12,0,0,1-12,12H60a12,12,0,0,1,0-24h49.55a40,40,0,1,0,0-24H60a12,12,0,0,1,0-24h49.55a40,40,0,1,0,0-24H60a12,12,0,0,1,0-24h48a12,12,0,0,1,0,24h-3.55a40,40,0,0,0,0,72h3.55a12,12,0,0,1,12,12h48a12,12,0,0,1,12,12h16a12,12,0,0,1,0,24Zm-68,16a16,16,0,1,1,16-16A16,16,0,0,1,140,184Z"
-                        ></path>
-                      </svg>
-                    </div>
+        <header class="flex items-center p-4 pb-2 justify-between">
+          <div class="text-white flex size-12 shrink-0 items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28px" height="28px" fill="currentColor" viewBox="0 0 256 256">
+              <path
+                d="M137.54,186.36a8,8,0,0,1,0,11.31l-9.94,10A56,56,0,0,1,48.38,128.4L72.5,104.28A56,56,0,0,1,149.31,102a8,8,0,1,1-10.64,12,40,40,0,0,0-54.85,1.63L59.7,139.72a40,40,0,0,0,56.58,56.58l9.94-9.94A8,8,0,0,1,137.54,186.36Zm70.08-138a56.08,56.08,0,0,0-79.22,0l-9.94,9.95a8,8,0,0,0,11.32,11.31l9.94-9.94a40,40,0,0,1,56.58,56.58L172.18,140.4A40,40,0,0,1,117.33,142,8,8,0,1,0,106.69,154a56,56,0,0,0,76.81-2.26l24.12-24.12A56.08,56.08,0,0,0,207.62,48.38Z"
+              ></path>
+            </svg>
+          </div>
+          <h2 class="text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1">LinkGen Universal</h2>
+        </header>
+
+        <main class="flex flex-col items-center px-4">
+          <h1 class="text-white tracking-light text-[32px] font-bold leading-tight text-center pb-3 pt-6">Generador de Enlaces Universal</h1>
+          <p class="text-[#8e99cc] text-base font-normal leading-normal pb-3 pt-1 text-center max-w-md">Pega cualquier enlace para obtener descargas directas sin esperas.</p>
+          
+          <div class="w-full max-w-lg flex flex-col items-center">
+              <div class="flex w-full flex-wrap items-end gap-4 px-4 py-3">
+                <label class="flex flex-col min-w-40 flex-1">
+                  <div class="flex w-full flex-1 items-stretch rounded-xl">
                     <input
-                      id="mediafireUrl"
-                      placeholder="Pega tu enlace de Mediafire aquí..."
-                      class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border border-[#3b4754] bg-[#1b2127] focus:border-[#3b4754] h-full placeholder:text-[#9cabba] px-[15px] rounded-r-none border-r-0 pr-2 rounded-l-none border-l-0 pl-2 text-sm font-normal leading-normal @[480px]:text-base @[480px]:font-normal @[480px]:leading-normal"
+                      id="universal-link-input"
+                      placeholder="Pega tu enlace aquí..."
+                      class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-2 focus:ring-[#607afb] border-none bg-[#21284a] h-14 placeholder:text-[#8e99cc] p-4 rounded-r-none border-r-0 pr-2 text-base font-normal leading-normal"
                     />
-                    <div class="flex items-center justify-center rounded-r-xl border-l-0 border border-[#3b4754] bg-[#1b2127] pr-[7px]">
-                      <button
-                        onclick="generarEnlace()"
-                        class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 px-4 @[480px]:h-12 @[480px]:px-5 bg-[#0a65c1] hover:bg-[#0d79e4] transition-colors text-white text-sm font-bold leading-normal tracking-[0.015em] @[480px]:text-base @[480px]:font-bold @[480px]:leading-normal @[480px]:tracking-[0.015em]"
-                      >
-                        <span class="truncate">Generar</span>
-                      </button>
+                    <div class="text-[#8e99cc] flex border-none bg-[#21284a] items-center justify-center pr-4 rounded-r-xl border-l-0">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24px" height="24px" fill="currentColor" viewBox="0 0 256 256"><path d="M137.54,186.36a8,8,0,0,1,0,11.31l-9.94,10A56,56,0,0,1,48.38,128.4L72.5,104.28A56,56,0,0,1,149.31,102a8,8,0,1,1-10.64,12,40,40,0,0,0-54.85,1.63L59.7,139.72a40,40,0,0,0,56.58,56.58l9.94-9.94A8,8,0,0,1,137.54,186.36Zm70.08-138a56.08,56.08,0,0,0-79.22,0l-9.94,9.95a8,8,0,0,0,11.32,11.31l9.94-9.94a40,40,0,0,1,56.58,56.58L172.18,140.4A40,40,0,0,1,117.33,142,8,8,0,1,0,106.69,154a56,56,0,0,0,76.81-2.26l24.12-24.12A56.08,56.08,0,0,0,207.62,48.38Z"></path></svg>
                     </div>
                   </div>
                 </label>
-
-                <div id="resultado" class="text-center text-base"></div>
               </div>
-            </div>
+              <div class="flex w-full px-4 py-3 justify-center">
+                <button
+                  id="generate-button"
+                  class="flex w-full min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-12 px-4 bg-[#607afb] hover:bg-opacity-90 transition-all text-white text-base font-bold leading-normal tracking-[0.015em] disabled:bg-gray-500 disabled:cursor-not-allowed"
+                >
+                  <span class="truncate">Generar Enlace</span>
+                </button>
+              </div>
           </div>
-        </div>
+          
+          <div id="results-container" class="p-4 w-full max-w-lg mt-4">
+            </div>
+        </main>
       </div>
-            <div>
-        <footer class="flex flex-col items-center gap-4 px-5 py-10 text-center @container">
-          <a
-            href="https://github.com/WayK17/Mediafire-Links"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-[#9cabba] hover:text-white transition-colors duration-300"
-            aria-label="Ver el repositorio en GitHub"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="28"
-              height="28"
-              fill="currentColor"
-              viewBox="0 0 16 16"
-            >
-              <path
-                d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"
-              />
-            </svg>
-          </a>
-          <p class="text-[#9cabba] text-base font-normal leading-normal">
-            © 2025 Link Converter. Todos los derechos reservados.
-          </p>
-        </footer>
-        <div class="h-5 bg-[#111418]"></div>
-      </div>
+      
+      <footer class="flex flex-col items-center gap-6 px-5 py-10 text-center @container">
+        <a href="https://github.com/tu-usuario/tu-repositorio" target="_blank" rel="noopener noreferrer" class="text-[#8e99cc] hover:text-white transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28px" height="28px" fill="currentColor" viewBox="0 0 256 256"><path d="M208.31,75.68A59.78,59.78,0,0,0,202.93,28,8,8,0,0,0,196,24a59.75,59.75,0,0,0-48,24H124A59.75,59.75,0,0,0,76,24a8,8,0,0,0-6.93,4,59.78,59.78,0,0,0-5.38,47.68A58.14,58.14,0,0,0,56,104v8a56.06,56.06,0,0,0,48.44,55.47A39.8,39.8,0,0,0,96,192v8H72a24,24,0,0,1-24-24A40,40,0,0,0,8,136a8,8,0,0,0,0,16,24,24,0,0,1,24,24,40,40,0,0,0,40,40H96v16a8,8,0,0,0,16,0V192a24,24,0,0,1,48,0v40a8,8,0,0,0,16,0V192a39.8,39.8,0,0,0-8.44-24.53A56.06,56.06,0,0,0,216,112v-8A58.14,58.14,0,0,0,208.31,75.68ZM200,112a40,40,0,0,1-40,40H112a40,40,0,0,1-40-40v-8a41.74,41.74,0,0,1,6.9-22.48A8,8,0,0,0,80,73.83a43.81,43.81,0,0,1,.79-33.58,43.88,43.88,0,0,1,32.32,20.06A8,8,0,0,0,119.82,64h32.35a8,8,0,0,0,6.74-3.69,43.87,43.87,0,0,1,32.32-20.06A43.81,43.81,0,0,1,192,73.83a8.09,8.09,0,0,0,1,7.65A41.72,41.72,0,0,1,200,104Z"></path></svg>
+        </a>
+        <p class="text-[#8e99cc] text-base font-normal leading-normal">© 2025 LinkGen Universal. Todos los derechos reservados.</p>
+      </footer>
+    </div>
 
     <script>
-      async function generarEnlace() {
-        const urlInput = document.getElementById('mediafireUrl');
-        const resultadoDiv = document.getElementById('resultado');
-        const button = document.querySelector('button[onclick="generarEnlace()"]');
-        const buttonText = button.querySelector('span');
+      const generateButton = document.getElementById('generate-button');
+      const linkInput = document.getElementById('universal-link-input');
+      const resultsContainer = document.getElementById('results-container');
 
-        const url = urlInput.value;
+      generateButton.addEventListener('click', async () => {
+        const url = linkInput.value;
         if (!url) {
-          resultadoDiv.innerHTML = `<div class="p-3 rounded-xl bg-red-900 bg-opacity-50 border border-red-700 text-red-300">Por favor, introduce un enlace.</div>`;
+          resultsContainer.innerHTML = `<div class="p-3 rounded-xl bg-red-900 bg-opacity-50 border border-red-500 text-red-200 text-center">Por favor, introduce un enlace.</div>`;
           return;
         }
 
         // Estado de carga
-        resultadoDiv.innerHTML = `<div class="p-3 rounded-xl bg-gray-700 bg-opacity-50 text-gray-300">Generando enlace, por favor espera...</div>`;
-        button.disabled = true;
-        buttonText.textContent = 'Procesando...';
+        resultsContainer.innerHTML = `<div class="p-3 rounded-xl bg-gray-700 bg-opacity-50 text-gray-200 text-center">Generando enlace, por favor espera...</div>`;
+        generateButton.disabled = true;
+        generateButton.querySelector('span').textContent = 'Procesando...';
 
         try {
-          // PASO 1: Llamar a la nueva API de Python
           const apiUrl = `/api/generate?url=${encodeURIComponent(url)}`;
           const response = await fetch(apiUrl);
           const data = await response.json();
 
           if (!response.ok) {
-            // Si la respuesta no es exitosa, lanzar el error que viene de la API
             throw new Error(data.error || 'Ocurrió un error desconocido.');
           }
           
-          // PASO 2: Entender los diferentes tipos de respuesta
           displayResults(data);
 
         } catch (error) {
           console.error('Error en fetch:', error);
-          resultadoDiv.innerHTML = `<div class="p-3 rounded-xl bg-red-900 bg-opacity-50 border border-red-700 text-red-300">Error: ${error.message}</div>`;
+          resultsContainer.innerHTML = `<div class="p-3 rounded-xl bg-red-900 bg-opacity-50 border border-red-500 text-red-200 text-center">Error: ${error.message}</div>`;
         } finally {
-          // Restaurar el botón
-          button.disabled = false;
-          buttonText.textContent = 'Generar';
+          generateButton.disabled = false;
+          generateButton.querySelector('span').textContent = 'Generar Enlace';
         }
-      }
+      });
 
       function displayResults(data) {
-        const resultadoDiv = document.getElementById('resultado');
         let htmlContent = '';
 
         // CASO 1: Es una carpeta con múltiples archivos
         if (data && Array.isArray(data.contents)) {
           htmlContent = `
-            <div class="p-4 rounded-xl bg-gray-800 border border-gray-700 text-white text-left">
-              <h3 class="font-bold text-lg mb-3 text-center">${data.title || 'Contenido de la Carpeta'}</h3>
-              <ul class="flex flex-col gap-2">`;
+            <div class="p-4 rounded-xl bg-[#21284a] border border-[#3b4754] text-white text-left">
+              <h3 class="font-bold text-xl mb-4 text-center">${data.title || 'Contenido de la Carpeta'}</h3>
+              <ul class="flex flex-col gap-3 max-h-60 overflow-y-auto pr-2">`;
           
           data.contents.forEach(file => {
             htmlContent += `
-              <li class="p-2 bg-gray-900 rounded-lg flex justify-between items-center">
-                <span class="truncate mr-2">${file.filename}</span>
-                <button onclick="copiarAlPortapapeles('${file.url}')" class="flex-shrink-0 rounded-md bg-blue-600 hover:bg-blue-500 transition-colors py-1 px-3 text-xs font-semibold">Copiar</button>
+              <li class="p-3 bg-[#101323] rounded-lg flex justify-between items-center gap-2">
+                <span class="truncate text-sm">${file.filename}</span>
+                <button onclick="copiarAlPortapapeles('${file.url}')" class="flex-shrink-0 rounded-md bg-[#607afb] hover:bg-opacity-80 transition-colors py-1 px-3 text-xs font-semibold">Copiar</button>
               </li>`;
           });
 
           htmlContent += `</ul></div>`;
         
-        // CASO 2: Es un solo enlace (puede venir como string o como objeto)
-        } else if ((data && typeof data === 'string') || (data && data.url)) {
-          const link = typeof data === 'string' ? data : data.url;
-          htmlContent = `
-            <div class="p-4 rounded-xl bg-green-900 bg-opacity-50 border border-green-700 text-white flex flex-col items-center gap-3">
-              <span class="font-bold">¡Enlace generado con éxito!</span>
-              <input class="w-full bg-gray-900 text-green-300 rounded-lg p-2 border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500" readonly value="${link}" />
-              <button onclick="copiarAlPortapapeles('${link}')" class="w-full mt-2 rounded-lg bg-green-600 hover:bg-green-500 transition-colors py-2 px-4 font-semibold">Copiar Enlace</button>
-            </div>`;
-        
-        // CASO 3: Respuesta inesperada
+        // CASO 2: Es un solo enlace
         } else {
-            htmlContent = `<div class="p-3 rounded-xl bg-red-900 bg-opacity-50 border border-red-700 text-red-300">Error: Respuesta inesperada de la API.</div>`;
+            const link = (typeof data === 'string') ? data : (data.url || (Array.isArray(data) ? data[0] : null));
+            const fileName = data.filename || 'Enlace Directo';
+            const fileSize = data.total_size ? `${(data.total_size / 1024 / 1024).toFixed(2)} MB` : (data.fileSize || '');
+
+            if (link) {
+                htmlContent = `
+                <div class="flex items-stretch justify-between gap-4 rounded-xl bg-[#21284a] p-4 border border-[#3b4754]">
+                    <div class="flex flex-col gap-3 flex-1">
+                        <div class="flex flex-col gap-1">
+                            <p class="text-white text-base font-bold leading-tight">${fileName}</p>
+                            <p class="text-[#8e99cc] text-sm font-normal leading-normal">${fileSize}</p>
+                        </div>
+                        <button onclick="copiarAlPortapapeles('${link}')" class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-9 px-4 flex-row-reverse bg-[#607afb] hover:bg-opacity-80 transition-colors text-white pr-2 gap-2 text-sm font-medium leading-normal w-fit">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18px" height="18px" fill="currentColor" viewBox="0 0 256 256"><path d="M216,32H88a8,8,0,0,0-8,8V80H40a8,8,0,0,0-8,8V216a8,8,0,0,0,8,8H168a8,8,0,0,0,8-8V176h40a8,8,0,0,0,8-8V40A8,8,0,0,0,216,32ZM160,208H48V96H160Zm48-48H176V88a8,8,0,0,0-8-8H96V48H208Z"></path></svg>
+                            <span class="truncate">Copiar Enlace</span>
+                        </button>
+                    </div>
+                </div>`;
+            } else {
+                 htmlContent = `<div class="p-3 rounded-xl bg-red-900 bg-opacity-50 border border-red-500 text-red-200 text-center">Error: La respuesta de la API no tuvo un formato reconocible.</div>`;
+            }
         }
 
-        resultadoDiv.innerHTML = htmlContent;
+        resultsContainer.innerHTML = htmlContent;
       }
 
       function copiarAlPortapapeles(texto) {
+        if (!texto || texto === 'undefined') {
+            alert('Error: No hay enlace que copiar.');
+            return;
+        }
         navigator.clipboard.writeText(texto).then(() => {
           alert('¡Enlace copiado al portapapeles!');
         }).catch(err => {
