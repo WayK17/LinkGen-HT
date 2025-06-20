@@ -73,7 +73,7 @@
         </a>
         <p class="text-[#8e99cc] text-base font-normal leading-normal">© 2025 LinkGen Universal. Todos los derechos reservados.</p>
       </footer>
-    </div>
+    </div>    
     <script>
       const generateButton = document.getElementById('generate-button');
       const linkInput = document.getElementById('universal-link-input');
@@ -112,8 +112,6 @@
 
       function displayResults(data, originalUrl) {
         let htmlContent = '';
-        
-        // --- NUEVA LÓGICA DE DETECCIÓN DE GOFILE ---
         const isGofile = originalUrl.includes('gofile.io');
         const gofileWarning = `
           <div class="p-2 mt-3 text-xs text-center text-amber-400 bg-amber-900 bg-opacity-50 rounded-lg border border-amber-700">
@@ -128,15 +126,20 @@
               <ul class="flex flex-col gap-3 max-h-60 overflow-y-auto pr-2">`;
           
           data.contents.forEach(file => {
+            // --- LÓGICA CONDICIONAL PARA EL BOTÓN ---
+            const buttonHtml = isGofile 
+              ? `<a href="${file.url}" target="_blank" class="flex-shrink-0 rounded-md bg-[#607afb] hover:bg-opacity-80 transition-colors py-1 px-3 text-xs font-semibold">Descargar</a>`
+              : `<button onclick="copiarAlPortapapeles('${file.url}')" class="flex-shrink-0 rounded-md bg-[#607afb] hover:bg-opacity-80 transition-colors py-1 px-3 text-xs font-semibold">Copiar</button>`;
+
             htmlContent += `
               <li class="p-3 bg-[#101323] rounded-lg flex justify-between items-center gap-2">
                 <span class="truncate text-sm">${file.filename}</span>
-                <a href="${file.url}" target="_blank" class="flex-shrink-0 rounded-md bg-[#607afb] hover:bg-opacity-80 transition-colors py-1 px-3 text-xs font-semibold">Descargar</a>
+                ${buttonHtml}
               </li>`;
           });
 
           htmlContent += `</ul>`;
-          if (isGofile) htmlContent += gofileWarning; // Añadir advertencia si es GoFile
+          if (isGofile) htmlContent += gofileWarning;
           htmlContent += `</div>`;
         
         // CASO 2: Es un solo enlace
@@ -145,19 +148,23 @@
             const fileName = data.filename || 'Enlace Directo';
             
             if (link) {
+                // --- LÓGICA CONDICIONAL PARA LOS BOTONES ---
+                const buttonsHtml = isGofile
+                  ? `<a href="${link}" target="_blank" class="flex-grow min-w-max cursor-pointer items-center justify-center flex overflow-hidden rounded-xl h-9 px-4 bg-[#607afb] hover:bg-opacity-80 transition-colors text-white text-sm font-medium leading-normal">Descargar Directo</a>
+                     <button onclick="copiarAlPortapapeles('${link}')" class="flex-grow min-w-max cursor-pointer items-center justify-center flex overflow-hidden rounded-xl h-9 px-4 bg-gray-600 hover:bg-gray-500 transition-colors text-white text-sm font-medium leading-normal">Copiar Enlace</button>`
+                  : `<button onclick="copiarAlPortapapeles('${link}')" class="w-full cursor-pointer items-center justify-center flex overflow-hidden rounded-xl h-9 px-4 bg-[#607afb] hover:bg-opacity-80 transition-colors text-white text-sm font-medium leading-normal">Copiar Enlace</button>`;
+
                 htmlContent = `
-                <div class="flex items-stretch justify-between gap-4 rounded-xl bg-[#21284a] p-4 border border-[#3b4754]">
-                    <div class="flex flex-col gap-3 flex-1">
-                        <div class="flex flex-col gap-1">
-                            <p class="text-white text-base font-bold leading-tight">${fileName}</p>
-                        </div>
-                        <div class="flex flex-wrap gap-2">
-                            <a href="${link}" target="_blank" class="flex-grow min-w-max cursor-pointer items-center justify-center flex overflow-hidden rounded-xl h-9 px-4 bg-[#607afb] hover:bg-opacity-80 transition-colors text-white text-sm font-medium leading-normal">Descargar Directo</a>
-                            <button onclick="copiarAlPortapapeles('${link}')" class="flex-grow min-w-max cursor-pointer items-center justify-center flex overflow-hidden rounded-xl h-9 px-4 bg-gray-600 hover:bg-gray-500 transition-colors text-white text-sm font-medium leading-normal">Copiar Enlace</button>
-                        </div>
+                <div class="flex flex-col gap-3 rounded-xl bg-[#21284a] p-4 border border-[#3b4754]">
+                    <div class="flex flex-col gap-1">
+                        <p class="text-white text-base font-bold leading-tight">${fileName}</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        ${buttonsHtml}
                     </div>
                 </div>`;
-                if (isGofile) htmlContent += gofileWarning; // Añadir advertencia si es GoFile
+
+                if (isGofile) htmlContent += gofileWarning;
             } else {
                  htmlContent = `<div class="p-3 rounded-xl bg-red-900 bg-opacity-50 border border-red-500 text-red-200 text-center">Error: La respuesta de la API no tuvo un formato reconocible.</div>`;
             }
