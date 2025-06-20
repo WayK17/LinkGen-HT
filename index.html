@@ -98,42 +98,85 @@
         <div class="h-5 bg-[#111418]"></div>
       </div>
 
-
-        <script>
+    <script>
       async function generarEnlace() {
         const urlInput = document.getElementById('mediafireUrl');
         const resultadoDiv = document.getElementById('resultado');
+        const button = document.querySelector('button[onclick="generarEnlace()"]');
+        const buttonText = button.querySelector('span');
 
         const url = urlInput.value;
-        if (!url || !url.includes('mediafire.com')) {
-          resultadoDiv.innerHTML = `<div class="p-3 rounded-xl bg-red-900 bg-opacity-50 border border-red-700 text-red-300">Por favor, introduce un enlace de Mediafire válido.</div>`;
+        if (!url) {
+          resultadoDiv.innerHTML = `<div class="p-3 rounded-xl bg-red-900 bg-opacity-50 border border-red-700 text-red-300">Por favor, introduce un enlace.</div>`;
           return;
         }
 
+        // Estado de carga
         resultadoDiv.innerHTML = `<div class="p-3 rounded-xl bg-gray-700 bg-opacity-50 text-gray-300">Generando enlace, por favor espera...</div>`;
+        button.disabled = true;
+        buttonText.textContent = 'Procesando...';
 
         try {
-          const apiUrl = `/api/mediafire?url=${encodeURIComponent(url)}`;
+          // PASO 1: Llamar a la nueva API de Python
+          const apiUrl = `/api/generate?url=${encodeURIComponent(url)}`;
           const response = await fetch(apiUrl);
           const data = await response.json();
 
-          // CORRECCIÓN 1: Se usa "data.directLink" que es lo que la API envía.
-          if (response.ok && data.directLink) {
-            // CORRECCIÓN 2: Se eliminaron las barras invertidas (\) innecesarias para arreglar la sintaxis.
-            resultadoDiv.innerHTML = `
-              <div class="p-4 rounded-xl bg-green-900 bg-opacity-50 border border-green-700 text-white flex flex-col items-center gap-3">
-                  <span class="font-bold">¡Enlace generado con éxito!</span>
-                  <input class="w-full bg-gray-900 text-green-300 rounded-lg p-2 border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500" readonly value="${data.directLink}" />
-                  <button onclick="copiarAlPortapapeles('${data.directLink}')" class="w-full mt-2 rounded-lg bg-green-600 hover:bg-green-500 transition-colors py-2 px-4 font-semibold">Copiar Enlace</button>
-              </div>
-            `;
-          } else {
-            resultadoDiv.innerHTML = `<div class="p-3 rounded-xl bg-red-900 bg-opacity-50 border border-red-700 text-red-300">Error: ${data.error || 'No se pudo generar el enlace.'}</div>`;
+          if (!response.ok) {
+            // Si la respuesta no es exitosa, lanzar el error que viene de la API
+            throw new Error(data.error || 'Ocurrió un error desconocido.');
           }
+          
+          // PASO 2: Entender los diferentes tipos de respuesta
+          displayResults(data);
+
         } catch (error) {
           console.error('Error en fetch:', error);
-          resultadoDiv.innerHTML = `<div class="p-3 rounded-xl bg-red-900 bg-opacity-50 border border-red-700 text-red-300">Error al conectar con el servidor. Inténtalo de nuevo.</div>`;
+          resultadoDiv.innerHTML = `<div class="p-3 rounded-xl bg-red-900 bg-opacity-50 border border-red-700 text-red-300">Error: ${error.message}</div>`;
+        } finally {
+          // Restaurar el botón
+          button.disabled = false;
+          buttonText.textContent = 'Generar';
         }
+      }
+
+      function displayResults(data) {
+        const resultadoDiv = document.getElementById('resultado');
+        let htmlContent = '';
+
+        // CASO 1: Es una carpeta con múltiples archivos
+        if (data && Array.isArray(data.contents)) {
+          htmlContent = `
+            <div class="p-4 rounded-xl bg-gray-800 border border-gray-700 text-white text-left">
+              <h3 class="font-bold text-lg mb-3 text-center">${data.title || 'Contenido de la Carpeta'}</h3>
+              <ul class="flex flex-col gap-2">`;
+          
+          data.contents.forEach(file => {
+            htmlContent += `
+              <li class="p-2 bg-gray-900 rounded-lg flex justify-between items-center">
+                <span class="truncate mr-2">${file.filename}</span>
+                <button onclick="copiarAlPortapapeles('${file.url}')" class="flex-shrink-0 rounded-md bg-blue-600 hover:bg-blue-500 transition-colors py-1 px-3 text-xs font-semibold">Copiar</button>
+              </li>`;
+          });
+
+          htmlContent += `</ul></div>`;
+        
+        // CASO 2: Es un solo enlace (puede venir como string o como objeto)
+        } else if ((data && typeof data === 'string') || (data && data.url)) {
+          const link = typeof data === 'string' ? data : data.url;
+          htmlContent = `
+            <div class="p-4 rounded-xl bg-green-900 bg-opacity-50 border border-green-700 text-white flex flex-col items-center gap-3">
+              <span class="font-bold">¡Enlace generado con éxito!</span>
+              <input class="w-full bg-gray-900 text-green-300 rounded-lg p-2 border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500" readonly value="${link}" />
+              <button onclick="copiarAlPortapapeles('${link}')" class="w-full mt-2 rounded-lg bg-green-600 hover:bg-green-500 transition-colors py-2 px-4 font-semibold">Copiar Enlace</button>
+            </div>`;
+        
+        // CASO 3: Respuesta inesperada
+        } else {
+            htmlContent = `<div class="p-3 rounded-xl bg-red-900 bg-opacity-50 border border-red-700 text-red-300">Error: Respuesta inesperada de la API.</div>`;
+        }
+
+        resultadoDiv.innerHTML = htmlContent;
       }
 
       function copiarAlPortapapeles(texto) {
