@@ -36,7 +36,7 @@
         <main class="flex flex-col items-center px-4">
           <h1 class="text-white tracking-light text-[32px] font-bold leading-tight text-center pb-3 pt-6">Generador de Enlaces Universal</h1>
           <p class="text-[#8e99cc] text-base font-normal leading-normal pb-3 pt-1 text-center max-w-md">Pega cualquier enlace para obtener descargas directas sin esperas.</p>
-          
+
           <div class="w-full max-w-lg flex flex-col items-center">
               <div class="flex w-full flex-wrap items-end gap-4 px-4 py-3">
                 <label class="flex flex-col min-w-40 flex-1">
@@ -61,20 +61,19 @@
                 </button>
               </div>
           </div>
-          
+
           <div id="results-container" class="p-4 w-full max-w-lg mt-4">
             </div>
         </main>
       </div>
-      
+
       <footer class="flex flex-col items-center gap-6 px-5 py-10 text-center @container">
-        <a href="https://github.com/tu-usuario/tu-repositorio" target="_blank" rel="noopener noreferrer" class="text-[#8e99cc] hover:text-white transition-colors">
+        <a href="https://github.com/WayK17/Mediafire-Links" target="_blank" rel="noopener noreferrer" class="text-[#8e99cc] hover:text-white transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" width="28px" height="28px" fill="currentColor" viewBox="0 0 256 256"><path d="M208.31,75.68A59.78,59.78,0,0,0,202.93,28,8,8,0,0,0,196,24a59.75,59.75,0,0,0-48,24H124A59.75,59.75,0,0,0,76,24a8,8,0,0,0-6.93,4,59.78,59.78,0,0,0-5.38,47.68A58.14,58.14,0,0,0,56,104v8a56.06,56.06,0,0,0,48.44,55.47A39.8,39.8,0,0,0,96,192v8H72a24,24,0,0,1-24-24A40,40,0,0,0,8,136a8,8,0,0,0,0,16,24,24,0,0,1,24,24,40,40,0,0,0,40,40H96v16a8,8,0,0,0,16,0V192a24,24,0,0,1,48,0v40a8,8,0,0,0,16,0V192a39.8,39.8,0,0,0-8.44-24.53A56.06,56.06,0,0,0,216,112v-8A58.14,58.14,0,0,0,208.31,75.68ZM200,112a40,40,0,0,1-40,40H112a40,40,0,0,1-40-40v-8a41.74,41.74,0,0,1,6.9-22.48A8,8,0,0,0,80,73.83a43.81,43.81,0,0,1,.79-33.58,43.88,43.88,0,0,1,32.32,20.06A8,8,0,0,0,119.82,64h32.35a8,8,0,0,0,6.74-3.69,43.87,43.87,0,0,1,32.32-20.06A43.81,43.81,0,0,1,192,73.83a8.09,8.09,0,0,0,1,7.65A41.72,41.72,0,0,1,200,104Z"></path></svg>
         </a>
         <p class="text-[#8e99cc] text-base font-normal leading-normal">© 2025 LinkGen Universal. Todos los derechos reservados.</p>
       </footer>
     </div>
-
     <script>
       const generateButton = document.getElementById('generate-button');
       const linkInput = document.getElementById('universal-link-input');
@@ -87,7 +86,6 @@
           return;
         }
 
-        // Estado de carga
         resultsContainer.innerHTML = `<div class="p-3 rounded-xl bg-gray-700 bg-opacity-50 text-gray-200 text-center">Generando enlace, por favor espera...</div>`;
         generateButton.disabled = true;
         generateButton.querySelector('span').textContent = 'Procesando...';
@@ -101,7 +99,7 @@
             throw new Error(data.error || 'Ocurrió un error desconocido.');
           }
           
-          displayResults(data);
+          displayResults(data, url); // Pasamos la URL original para la detección
 
         } catch (error) {
           console.error('Error en fetch:', error);
@@ -112,8 +110,15 @@
         }
       });
 
-      function displayResults(data) {
+      function displayResults(data, originalUrl) {
         let htmlContent = '';
+        
+        // --- NUEVA LÓGICA DE DETECCIÓN DE GOFILE ---
+        const isGofile = originalUrl.includes('gofile.io');
+        const gofileWarning = `
+          <div class="p-2 mt-3 text-xs text-center text-amber-400 bg-amber-900 bg-opacity-50 rounded-lg border border-amber-700">
+            <strong>Aviso de GoFile:</strong> Este enlace requiere una cookie de autorización. Puede que no funcione en gestores de descarga. Se recomienda descargar directamente desde el navegador.
+          </div>`;
 
         // CASO 1: Es una carpeta con múltiples archivos
         if (data && Array.isArray(data.contents)) {
@@ -126,37 +131,37 @@
             htmlContent += `
               <li class="p-3 bg-[#101323] rounded-lg flex justify-between items-center gap-2">
                 <span class="truncate text-sm">${file.filename}</span>
-                <button onclick="copiarAlPortapapeles('${file.url}')" class="flex-shrink-0 rounded-md bg-[#607afb] hover:bg-opacity-80 transition-colors py-1 px-3 text-xs font-semibold">Copiar</button>
+                <a href="${file.url}" target="_blank" class="flex-shrink-0 rounded-md bg-[#607afb] hover:bg-opacity-80 transition-colors py-1 px-3 text-xs font-semibold">Descargar</a>
               </li>`;
           });
 
-          htmlContent += `</ul></div>`;
+          htmlContent += `</ul>`;
+          if (isGofile) htmlContent += gofileWarning; // Añadir advertencia si es GoFile
+          htmlContent += `</div>`;
         
         // CASO 2: Es un solo enlace
         } else {
             const link = (typeof data === 'string') ? data : (data.url || (Array.isArray(data) ? data[0] : null));
             const fileName = data.filename || 'Enlace Directo';
-            const fileSize = data.total_size ? `${(data.total_size / 1024 / 1024).toFixed(2)} MB` : (data.fileSize || '');
-
+            
             if (link) {
                 htmlContent = `
                 <div class="flex items-stretch justify-between gap-4 rounded-xl bg-[#21284a] p-4 border border-[#3b4754]">
                     <div class="flex flex-col gap-3 flex-1">
                         <div class="flex flex-col gap-1">
                             <p class="text-white text-base font-bold leading-tight">${fileName}</p>
-                            <p class="text-[#8e99cc] text-sm font-normal leading-normal">${fileSize}</p>
                         </div>
-                        <button onclick="copiarAlPortapapeles('${link}')" class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-9 px-4 flex-row-reverse bg-[#607afb] hover:bg-opacity-80 transition-colors text-white pr-2 gap-2 text-sm font-medium leading-normal w-fit">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18px" height="18px" fill="currentColor" viewBox="0 0 256 256"><path d="M216,32H88a8,8,0,0,0-8,8V80H40a8,8,0,0,0-8,8V216a8,8,0,0,0,8,8H168a8,8,0,0,0,8-8V176h40a8,8,0,0,0,8-8V40A8,8,0,0,0,216,32ZM160,208H48V96H160Zm48-48H176V88a8,8,0,0,0-8-8H96V48H208Z"></path></svg>
-                            <span class="truncate">Copiar Enlace</span>
-                        </button>
+                        <div class="flex flex-wrap gap-2">
+                            <a href="${link}" target="_blank" class="flex-grow min-w-max cursor-pointer items-center justify-center flex overflow-hidden rounded-xl h-9 px-4 bg-[#607afb] hover:bg-opacity-80 transition-colors text-white text-sm font-medium leading-normal">Descargar Directo</a>
+                            <button onclick="copiarAlPortapapeles('${link}')" class="flex-grow min-w-max cursor-pointer items-center justify-center flex overflow-hidden rounded-xl h-9 px-4 bg-gray-600 hover:bg-gray-500 transition-colors text-white text-sm font-medium leading-normal">Copiar Enlace</button>
+                        </div>
                     </div>
                 </div>`;
+                if (isGofile) htmlContent += gofileWarning; // Añadir advertencia si es GoFile
             } else {
                  htmlContent = `<div class="p-3 rounded-xl bg-red-900 bg-opacity-50 border border-red-500 text-red-200 text-center">Error: La respuesta de la API no tuvo un formato reconocible.</div>`;
             }
         }
-
         resultsContainer.innerHTML = htmlContent;
       }
 
