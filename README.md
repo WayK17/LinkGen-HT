@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="URL_DE_TU_LOGO_AQUI" alt="Logo de LinkGen Universal" width="120">
+  <img src="https://envs.sh/ER1.jpg" alt="Logo de LinkGen Universal" width="120">
   <h1>
     LinkGen Universal
   </h1>
@@ -29,7 +29,7 @@ LinkGen Universal no es solo un generador de enlaces, es una herramienta complet
 * 📁 **Gestión Avanzada de Carpetas:** Procesa carpetas completas de MediaFire y GoFile, extrayendo el enlace de cada archivo individualmente.
 * 🔑 **Soporte de Contraseñas:** Maneja enlaces protegidos con contraseña de forma nativa. Simplemente usa el formato `enlace::contraseña`.
 * ✨ **Interfaz Intuitiva:** Un diseño limpio, moderno y 100% responsivo, enfocado en la facilidad de uso y la experiencia del usuario (UX).
-* ⚡ **Rápido y Eficiente:** Desplegado en la red global de Vercel para una respuesta inmediata desde cualquier parte del mundo.
+* ⚡ **Rápido y Eficiente:** Desplegado en la red global de Vercel para una respuesta inmediata.
 
 ## 🚀 Cómo Usar
 
@@ -48,15 +48,7 @@ Este proyecto fue posible gracias a la combinación de tecnologías modernas:
 * **Scraping:** Librerías de Python como `cloudscraper` y `lxml` para la extracción de datos.
 * **Hosting:** Desplegado y alojado en **Vercel**.
 
-## 💬 Comunidad y Contribuciones
-
-¿Tienes dudas, ideas para nuevas funcionalidades o quieres reportar un error?
-
-➡️ **Únete a nuestro canal de Telegram: [Ness Cloud](https://t.me/Ness_Cloud)**
-
-Las contribuciones al proyecto son siempre bienvenidas. Si quieres mejorar algo, siéntete libre de hacer un Fork del repositorio y abrir un Pull Request.
-
 ## 👨‍💻 Desarrollo
 
-* **Desarrollo y Diseño UX/UI:** [Ness Cloud](https://t.me/Ness_Cloud)
+* **Desarrollo y Diseño UX/UI:** WayK
 * **Base del Script de API:** El potente script de extracción fue encontrado y adaptado para este proyecto.
