@@ -1,44 +1,62 @@
-# 🔥 API para Extraer Enlaces Directos de MediaFire
+<div align="center">
+  <img src="URL_DE_TU_LOGO_AQUI" alt="Logo de LinkGen Universal" width="120">
+  <h1>
+    LinkGen Universal
+  </h1>
+  <p>
+    Una aplicación web moderna y potente que convierte cualquier enlace de servicios populares en enlaces de descarga directa de forma instantánea.
+  </p>
 
-![Licencia](https://img.shields.io/badge/Licencia-MIT-green.svg)
-![Versión](https://img.shields.io/badge/Versi%C3%B3n-2.0.0-blue.svg)
-
-Una API ligera y eficiente para extraer enlaces de descarga directa de MediaFire, obteniendo también el nombre y el peso del archivo. Ideal para desplegar fácilmente en Vercel.
+  <p>
+    <img src="https://img.shields.io/badge/Despliegue-Vercel-black?style=for-the-badge&logo=vercel" alt="Desplegado en Vercel">
+    <img src="https://img.shields.io/badge/Backend-Python-blue?style=for-the-badge&logo=python" alt="Backend en Python">
+    <img src="https://img.shields.io/badge/Frontend-TailwindCSS-38B2AC?style=for-the-badge&logo=tailwind-css" alt="Frontend con Tailwind CSS">
+    <img src="https://img.shields.io/badge/Licencia-MIT-green?style=for-the-badge" alt="Licencia MIT">
+  </p>
+</div>
 
 ---
 
-## 🚀 Características Principales
+<p align="center">
+  <img src="URL_DEL_GIF_DE_DEMOSTRACION_AQUI" alt="Demostración de LinkGen Universal">
+</p>
 
-* ✅ Obtiene el enlace de descarga directa de cualquier archivo de MediaFire.
-* ✅ Extrae el nombre y el peso del archivo.
-* ✅ Habilitado para CORS, permitiendo peticiones desde cualquier origen.
-* ✅ Implementa un sistema de caché para respuestas más rápidas.
-* ✅ Diseñado para ser desplegado sin esfuerzo en plataformas como Vercel.
+## ✨ Características Principales
 
----
+LinkGen Universal no es solo un generador de enlaces, es una herramienta completa diseñada para la eficiencia.
 
-## ⚙️ Uso de la API
+* 🌐 **Soporte Universal:** Compatible con decenas de servicios de alojamiento, incluyendo MediaFire, GoFile, TeraBox, PixelDrain, y muchos más.
+* 📁 **Gestión Avanzada de Carpetas:** Procesa carpetas completas de MediaFire y GoFile, extrayendo el enlace de cada archivo individualmente.
+* 🔑 **Soporte de Contraseñas:** Maneja enlaces protegidos con contraseña de forma nativa. Simplemente usa el formato `enlace::contraseña`.
+* ✨ **Interfaz Intuitiva:** Un diseño limpio, moderno y 100% responsivo, enfocado en la facilidad de uso y la experiencia del usuario (UX).
+* ⚡ **Rápido y Eficiente:** Desplegado en la red global de Vercel para una respuesta inmediata desde cualquier parte del mundo.
 
-Para utilizar la API, simplemente realiza una petición GET a la ruta `/api/mediafire`, pasando la URL del archivo de MediaFire como parámetro.
+## 🚀 Cómo Usar
 
-**Ejemplo usando `cURL`:**
+La simplicidad es la clave.
 
-```bash
-curl "[https://tu-app.vercel.app/api/mediafire?url=](https://tu-app.vercel.app/api/mediafire?url=)<URL_DEL_ARCHIVO_MEDIAFIRE>"
+1.  **Visita el sitio web:** Abre la aplicación en tu navegador.
+2.  **Pega tu enlace:** Coloca el enlace del archivo o carpeta que quieres procesar en el campo de entrada.
+3.  **Genera y Copia:** Haz clic en "Generar Enlace" y obtén tus enlaces de descarga directa al instante.
 
-Ejemplo de respuesta exitosa (JSON):
-{
-  "directLink": "[https://download2390.mediafire.com/](https://download2390.mediafire.com/)...",
-  "fileName": "mi_archivo_genial.zip",
-  "fileSize": "123.45 MB",
-  "mediafireURL": "[https://www.mediafire.com/file/](https://www.mediafire.com/file/)...",
-  "credit": "Developer: @WayK17"
-}
+## 🛠️ Tecnologías Utilizadas (Tech Stack)
 
-💬 Comunidad
-¿Tienes dudas, sugerencias o quieres estar al tanto de las actualizaciones?
-➡️ Únete a nuestro canal de Telegram: Ness Cloud
-👨‍💻 Créditos
- * Desarrollador original de la API: [@labani]
-<!-- end list -->
+Este proyecto fue posible gracias a la combinación de tecnologías modernas:
 
+* **Backend:** Python, implementado como una función serverless en Vercel.
+* **Frontend:** HTML5, y estilizado con **Tailwind CSS** para un diseño rápido y responsivo.
+* **Scraping:** Librerías de Python como `cloudscraper` y `lxml` para la extracción de datos.
+* **Hosting:** Desplegado y alojado en **Vercel**.
+
+## 💬 Comunidad y Contribuciones
+
+¿Tienes dudas, ideas para nuevas funcionalidades o quieres reportar un error?
+
+➡️ **Únete a nuestro canal de Telegram: [Ness Cloud](https://t.me/Ness_Cloud)**
+
+Las contribuciones al proyecto son siempre bienvenidas. Si quieres mejorar algo, siéntete libre de hacer un Fork del repositorio y abrir un Pull Request.
+
+## 👨‍💻 Desarrollo
+
+* **Desarrollo y Diseño UX/UI:** [Ness Cloud](https://t.me/Ness_Cloud)
+* **Base del Script de API:** El potente script de extracción fue encontrado y adaptado para este proyecto.
