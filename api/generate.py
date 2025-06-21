@@ -73,6 +73,8 @@ def direct_link_generator(link):
         return mediafile(link)
     elif "mediafire.com" in domain:
         return mediafire(link)
+    elif "fireload.com" in domain: # <-- AÑADIR ESTA LÍNEA Y LA SIGUIENTE
+        return fireload(link)
     elif "osdn.net" in domain:
         return osdn(link)
     elif "github.com" in domain:
@@ -1813,6 +1815,31 @@ def qiwi(url):
     else:
         raise DirectDownloadLinkException("ERROR: File not found")
 
+#Empieza codigo de Fireload
+
+def fireload(url):
+    with create_scraper() as session:
+        try:
+            # Paso 1: Obtener el contenido de la página inicial
+            response = session.get(url)
+
+            # Paso 2: Usar una expresión regular para encontrar el enlace de descarga
+            # Busca cualquier URL que empiece con srvXX.fireload.com
+            match = search(r'https?://srv\d+\.fireload\.com/[^\s\'"]+', response.text)
+
+            if match:
+                # Paso 3: Si se encuentra, lo hemos logrado
+                direct_link = match.group(0)
+                return direct_link
+            else:
+                # Si no se encuentra, el sitio puede haber cambiado
+                raise DirectDownloadLinkException("ERROR: No se pudo encontrar el enlace directo en la página de Fireload.")
+
+        except Exception as e:
+            # Capturar cualquier otro error durante el proceso
+            raise DirectDownloadLinkException(f"ERROR en Fireload: {str(e)}")
+
+#Fin de Fireload
 
 def mp4upload(url):
     with Session() as session:
