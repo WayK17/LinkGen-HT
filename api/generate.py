@@ -1,4 +1,3 @@
-# Importaciones de librerías externas (estas están bien)
 from cloudscraper import create_scraper
 from hashlib import sha256
 from http.cookiejar import MozillaCookieJar
@@ -13,14 +12,14 @@ from urllib.parse import parse_qs, urlparse, quote
 from urllib3.util.retry import Retry
 from uuid import uuid4
 from base64 import b64decode, b64encode
+from re import search
+from json import loads
 
 # Importaciones para el manejador de Vercel
 from http.server import BaseHTTPRequestHandler
 import json
 
-# =================================================================
 # INICIAN LAS CORRECCIONES - PIEZAS FALTANTES AÑADIDAS
-# =================================================================
 
 class DirectDownloadLinkException(Exception):
     pass
@@ -44,9 +43,7 @@ def speed_string_to_bytes(size_string):
         return float(size_string.replace('tb','').strip()) * 1024 * 1024 * 1024 * 1024
     return 0
 
-# =================================================================
 # TERMINAN LAS CORRECCIONES
-# =================================================================
 
 user_agent = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0"
@@ -1818,31 +1815,33 @@ def qiwi(url):
 #Empieza codigo de Fireload
 
 def fireload(url):
-    # Esta es una versión de depuración para analizar el HTML de Fireload
-    with create_scraper() as session:
-        try:
-            response = session.get(url)
+    with create_scraper() as session:
+        try:
+            # Hacemos la petición a la página de Fireload
+            response = session.get(url)
+            if response.status_code != 200:
+                raise DirectDownloadLinkException(f"Error: Fireload respondió con el código {response.status_code}")
 
-            # Verificamos si la página se cargó correctamente
-            if response.status_code != 200:
-                raise DirectDownloadLinkException(f"Error: Fireload respondió con el código de estado {response.status_code}")
+            # Usamos una expresión regular para encontrar el bloque de Javascript que contiene los datos
+            match = search(r'window\.Fl\s*=\s*({.*?});', response.text)
+            if not match:
+                raise DirectDownloadLinkException("ERROR: No se pudo encontrar el objeto de datos (window.Fl) en la página.")
 
-            html_content = response.text
+            # Extraemos el texto JSON y lo convertimos a un diccionario de Python
+            json_data = loads(match.group(1))
 
-            # Intentamos encontrar el enlace como antes
-            match = search(r'https?://srv\d+\.fireload\.com/[^\s\'"]+', html_content)
+            # Obtenemos el enlace directo de la clave "dlink"
+            direct_link = json_data.get("dlink")
 
-            if match:
-                # Si lo encontramos, todo bien, lo devolvemos
-                return match.group(0)
-            else:
-                # SI NO LO ENCONTRAMOS, devolvemos el inicio del HTML para analizarlo
-                # Esto nos mostrará qué está viendo realmente nuestro script
-                error_message = f"DEBUG: No se encontró el enlace. El HTML recibido empieza con: {html_content[:1500]}"
-                raise DirectDownloadLinkException(error_message)
+            if not direct_link:
+                raise DirectDownloadLinkException("ERROR: Objeto de datos encontrado, pero sin 'dlink'.")
 
-        except Exception as e:
-            raise DirectDownloadLinkException(f"ERROR en Fireload: {str(e)}")
+            return direct_link
+
+        except Exception as e:
+            # Capturamos cualquier otro error para tener un mensaje claro
+            raise DirectDownloadLinkException(f"ERROR procesando Fireload: {str(e)}")
+         
 
 #Fin de Fireload
 
