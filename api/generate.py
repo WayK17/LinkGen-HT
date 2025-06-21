@@ -48,6 +48,9 @@ user_agent = (
 )
 
 def direct_link_generator(link):
+    # --- INICIO DE LÍNEA DE PRUEBA ---
+    raise DirectDownloadLinkException("PRUEBA DE ERROR: El manejador funciona correctamente.")
+    # --- FIN DE LÍNEA DE PRUEBA ---
     """direct links generator"""
     domain = urlparse(link).hostname
     if not domain:
