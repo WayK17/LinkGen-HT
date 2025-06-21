@@ -42,8 +42,10 @@ def speed_string_to_bytes(size_string):
     elif 'tb' in size_string: return float(size_string.replace('tb','').strip()) * 1024 * 1024 * 1024 * 1024
     return 0
 
-def is_share_link(url: str):
-    return bool(match(r'https?:\/\/.+\.gdtot\.\S+|https?:\/\/(filepress|filebee|appdrive|driveapp|gdflix|driveseed|driveace|drivepro)\.\S+', url))
+
+def is_share_link(link: str):
+    return bool(match(r'https?:\/\/.+\.gdtot\.\S+|https?:\/\/(filepress|filebee|appdrive|driveapp|gdflix|driveseed|driveace|drivepro)\.\S+', link))
+
 
 # ===============================================================
 #  INICIO DEL CÓDIGO COMPLETO DE SCRAPERS
@@ -2028,6 +2030,7 @@ class handler(BaseHTTPRequestHandler):
             self.send_response(500)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
+            # --- LA CORRECCIÓN FINAL Y MÁS IMPORTANTE ---
             error_payload = {
                 "error": "Error Interno del Servidor",
                 "details": f"Tipo: {type(e).__name__}, Mensaje: {str(e)}"
