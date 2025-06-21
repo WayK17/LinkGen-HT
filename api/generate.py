@@ -1818,25 +1818,30 @@ def qiwi(url):
 #Empieza codigo de Fireload
 
 def fireload(url):
+    # Esta es una versión de depuración para analizar el HTML de Fireload
     with create_scraper() as session:
         try:
-            # Paso 1: Obtener el contenido de la página inicial
             response = session.get(url)
 
-            # Paso 2: Usar una expresión regular para encontrar el enlace de descarga
-            # Busca cualquier URL que empiece con srvXX.fireload.com
-            match = search(r'https?://srv\d+\.fireload\.com/[^\s\'"]+', response.text)
+            # Verificamos si la página se cargó correctamente
+            if response.status_code != 200:
+                raise DirectDownloadLinkException(f"Error: Fireload respondió con el código de estado {response.status_code}")
+
+            html_content = response.text
+
+            # Intentamos encontrar el enlace como antes
+            match = search(r'https?://srv\d+\.fireload\.com/[^\s\'"]+', html_content)
 
             if match:
-                # Paso 3: Si se encuentra, lo hemos logrado
-                direct_link = match.group(0)
-                return direct_link
+                # Si lo encontramos, todo bien, lo devolvemos
+                return match.group(0)
             else:
-                # Si no se encuentra, el sitio puede haber cambiado
-                raise DirectDownloadLinkException("ERROR: No se pudo encontrar el enlace directo en la página de Fireload.")
+                # SI NO LO ENCONTRAMOS, devolvemos el inicio del HTML para analizarlo
+                # Esto nos mostrará qué está viendo realmente nuestro script
+                error_message = f"DEBUG: No se encontró el enlace. El HTML recibido empieza con: {html_content[:1500]}"
+                raise DirectDownloadLinkException(error_message)
 
         except Exception as e:
-            # Capturar cualquier otro error durante el proceso
             raise DirectDownloadLinkException(f"ERROR en Fireload: {str(e)}")
 
 #Fin de Fireload
