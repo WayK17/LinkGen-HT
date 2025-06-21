@@ -1989,6 +1989,10 @@ def swisstransfer(link):
 # INICIA EL MANEJADOR (HANDLER) PARA VERCEL
 # Esta parte hace que el script funcione como una API en Vercel
 # =================================================================
+# =================================================================
+# INICIA EL MANEJADOR (HANDLER) PARA VERCEL
+# Esta parte hace que el script funcione como una API en Vercel
+# =================================================================
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         # Configurar CORS para todas las respuestas
@@ -2021,11 +2025,7 @@ class handler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
-            # Asegurarnos de que el resultado se convierte a JSON correctamente
-            if isinstance(result, (dict, list, str)):
-                 self.wfile.write(json.dumps(result).encode('utf-8'))
-            else:
-                self.wfile.write(json.dumps(str(result)).encode('utf-8'))
+            self.wfile.write(json.dumps(result, default=str).encode('utf-8'))
 
         except DirectDownloadLinkException as e:
             # Manejar errores controlados (los que ya teníamos)
@@ -2042,7 +2042,9 @@ class handler(BaseHTTPRequestHandler):
             # Crear un reporte de error claro en formato JSON
             error_payload = {
                 "error": "Error Inesperado en el Servidor (Python Crash)",
-                "details": f"Tipo de Error: {type(e).name}, Mensaje: {str(e)}"
+                # LA LÍNEA CORREGIDA ESTÁ AQUÍ ABAJO:
+                "details": f"Tipo de Error: {type(e).__name__}, Mensaje: {str(e)}"
             }
             self.wfile.write(json.dumps(error_payload).encode('utf-8'))
-            
+
+ 
