@@ -1839,10 +1839,7 @@ def fireload(url):
         except Exception as e:
             # Capturamos cualquier otro error para tener un mensaje claro
             raise DirectDownloadLinkException(f"ERROR procesando Fireload: {str(e)}")
-         
-
-#Fin de Fireload
-
+ 
 def mp4upload(url):
     with Session() as session:
         try:
@@ -2048,3 +2045,4 @@ class handler(BaseHTTPRequestHandler):
                 "details": f"Tipo de Error: {type(e).name}, Mensaje: {str(e)}"
             }
             self.wfile.write(json.dumps(error_payload).encode('utf-8'))
+            
