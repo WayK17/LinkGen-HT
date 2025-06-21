@@ -12,8 +12,6 @@ from urllib.parse import parse_qs, urlparse, quote
 from urllib3.util.retry import Retry
 from uuid import uuid4
 from base64 import b64decode, b64encode
-from re import search
-from json import loads
 
 # Importaciones para el manejador de Vercel
 from http.server import BaseHTTPRequestHandler
