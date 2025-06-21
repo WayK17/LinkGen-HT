@@ -1993,12 +1993,12 @@ def direct_link_generator(link):
 # ===============================================================
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-
+        # Manejar preflight OPTIONS primero
         if self.command == 'OPTIONS':
             self.send_response(200)
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+            self.send_header('Access-Control-Allow-Headers', 'Content-Type')
             self.end_headers()
             return
 
@@ -2007,32 +2007,38 @@ class handler(BaseHTTPRequestHandler):
             url_to_process = query_components.get('url', [None])[0]
 
             if not url_to_process:
-                self.send_response(400)
-                self.send_header('Content-type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": "Parámetro 'url' no encontrado."}).encode('utf-8'))
+                self.send_json_response({"error": "Parámetro 'url' no encontrado."}, 400)
                 return
 
             result = direct_link_generator(url_to_process)
-            
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.end_headers()
-            self.wfile.write(json.dumps(result, default=str).encode('utf-8'))
+            self.send_json_response(result, 200)
 
         except DirectDownloadLinkException as e:
-            self.send_response(400)
-            self.send_header('Content-type', 'application/json')
-            self.end_headers()
-            self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+            self.send_json_response({"error": str(e)}, 400)
 
         except Exception as e:
-            self.send_response(500)
-            self.send_header('Content-type', 'application/json')
-            self.end_headers()
-            # --- LA CORRECCIÓN FINAL Y MÁS IMPORTANTE ---
             error_payload = {
                 "error": "Error Interno del Servidor",
                 "details": f"Tipo: {type(e).__name__}, Mensaje: {str(e)}"
             }
-            self.wfile.write(json.dumps(error_payload).encode('utf-8'))
+            self.send_json_response(error_payload, 500)
+
+    def send_json_response(self, data, status_code):
+        """Método auxiliar para enviar respuestas JSON correctamente"""
+        self.send_response(status_code)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.end_headers()
+        
+        json_data = json.dumps(data, default=str, ensure_ascii=False)
+        self.wfile.write(json_data.encode('utf-8'))
+
+    def do_OPTIONS(self):
+        """Manejar solicitudes OPTIONS para CORS"""
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.end_headers()
