@@ -48,9 +48,6 @@ user_agent = (
 )
 
 def direct_link_generator(link):
-    # --- INICIO DE LÍNEA DE PRUEBA ---
-    raise DirectDownloadLinkException("PRUEBA DE ERROR: El manejador funciona correctamente.")
-    # --- FIN DE LÍNEA DE PRUEBA ---
     """direct links generator"""
     domain = urlparse(link).hostname
     if not domain:
@@ -71,7 +68,7 @@ def direct_link_generator(link):
         return mediafile(link)
     elif "mediafire.com" in domain:
         return mediafire(link)
-    elif "fireload.com" in domain: # <-- AÑADIR ESTA LÍNEA Y LA SIGUIENTE
+    elif "fireload.com" in domain:
         return fireload(link)
     elif "osdn.net" in domain:
         return osdn(link)
@@ -1813,35 +1810,6 @@ def qiwi(url):
     else:
         raise DirectDownloadLinkException("ERROR: File not found")
 
-#Empieza codigo de Fireload
-
-def fireload(url):
-    with create_scraper() as session:
-        try:
-            # Hacemos la petición a la página de Fireload
-            response = session.get(url)
-            if response.status_code != 200:
-                raise DirectDownloadLinkException(f"Error: Fireload respondió con el código {response.status_code}")
-
-            # Usamos una expresión regular para encontrar el bloque de Javascript que contiene los datos
-            match = search(r'window\.Fl\s*=\s*({.*?});', response.text)
-            if not match:
-                raise DirectDownloadLinkException("ERROR: No se pudo encontrar el objeto de datos (window.Fl) en la página.")
-
-            # Extraemos el texto JSON y lo convertimos a un diccionario de Python
-            json_data = loads(match.group(1))
-
-            # Obtenemos el enlace directo de la clave "dlink"
-            direct_link = json_data.get("dlink")
-
-            if not direct_link:
-                raise DirectDownloadLinkException("ERROR: Objeto de datos encontrado, pero sin 'dlink'.")
-
-            return direct_link
-
-        except Exception as e:
-            # Capturamos cualquier otro error para tener un mensaje claro
-            raise DirectDownloadLinkException(f"ERROR procesando Fireload: {str(e)}")
  
 def mp4upload(url):
     with Session() as session:
