@@ -1994,39 +1994,57 @@ def swisstransfer(link):
 # =================================================================
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        # Parsear la URL para obtener los parámetros de la consulta
-        query_components = parse_qs(urlparse(self.path).query)
-        url_to_process = query_components.get('url', [None])[0]
+        # Configurar CORS para todas las respuestas
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
 
-        # Verificar si se proporcionó una URL
-        if not url_to_process:
-            self.send_response(400)
-            self.send_header('Content-type', 'application/json')
+        if self.command == 'OPTIONS':
+            self.send_response(200)
             self.end_headers()
-            self.wfile.write(json.dumps({"error": "El parámetro URL es requerido"}).encode('utf-8'))
             return
 
+        # --- Bloque principal para atrapar CUALQUIER error ---
         try:
-            # Llamar a la función principal para generar el enlace
+            # Extraer la URL de los parámetros de la petición
+            query_components = parse_qs(urlparse(self.path).query)
+            url_to_process = query_components.get('url', [None])[0]
+
+            if not url_to_process:
+                self.send_response(400)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "Parámetro 'url' no encontrado."}).encode('utf-8'))
+                return
+
+            # Generar el enlace directo
             result = direct_link_generator(url_to_process)
-            
-            # Enviar una respuesta exitosa con el resultado
+
+            # Enviar respuesta exitosa
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
-            self.wfile.write(json.dumps(result, indent=2).encode('utf-8'))
+            # Asegurarnos de que el resultado se convierte a JSON correctamente
+            if isinstance(result, (dict, list, str)):
+                 self.wfile.write(json.dumps(result).encode('utf-8'))
+            else:
+                self.wfile.write(json.dumps(str(result)).encode('utf-8'))
 
         except DirectDownloadLinkException as e:
-            # Manejar errores específicos de la librería
+            # Manejar errores controlados (los que ya teníamos)
             self.send_response(400)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+
         except Exception as e:
-            # Manejar cualquier otro error inesperado
-            self.send_response(500)
+            # --- NUEVO: Atrapa todos los demás errores inesperados ---
+            self.send_response(500) # Error interno del servidor
             self.send_header('Content-type', 'application/json')
             self.end_headers()
-            self.wfile.write(json.dumps({"error": f"Error interno del servidor: {str(e)}"}).encode('utf-8'))
-        
-        return
+            # Crear un reporte de error claro en formato JSON
+            error_payload = {
+                "error": "Error Inesperado en el Servidor (Python Crash)",
+                "details": f"Tipo de Error: {type(e).name}, Mensaje: {str(e)}"
+            }
+            self.wfile.write(json.dumps(error_payload).encode('utf-8'))
