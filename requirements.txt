@@ -2,4 +2,3 @@ requests
 cloudscraper
 lxml
 urllib3
-pip install selenium
