@@ -242,33 +242,7 @@ def fireload_selenium(url):
                 pass
 
 
-def fireload_hybrid(url):
-    """
-    Función híbrida que intenta primero cloudscraper y luego Selenium
-    """
-    print("FIRELOAD HYBRID: Intentando método cloudscraper primero...")
-    
-    try:
-        # Intentar el método original (más rápido)
-        return fireload(url)
-    except DirectDownloadLinkException as e:
-        error_msg = str(e).lower()
-        
-        # Si es CAPTCHA o problemas de JavaScript, usar Selenium
-        if any(keyword in error_msg for keyword in ['captcha', 'javascript', 'anti-bot', 'cloudflare']):
-            print("FIRELOAD HYBRID: Cloudscraper falló por protecciones, probando Selenium...")
-            return fireload_selenium(url)
-        else:
-            # Re-lanzar el error original si no es un problema de anti-bot
-            raise
 
-
-# Función principal recomendada
-def fireload_main(url):
-    """
-    Función principal recomendada para Fireload
-    """
-    return fireload_hybrid(url)
 
 
 def get_captcha_token(session, params):
