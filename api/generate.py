@@ -59,43 +59,63 @@ def is_share_link(link: str):
 # pero tu archivo debe contenerlo completo.
 
 # Ejemplo de cómo debe verse el inicio de las funciones:
+
 def fireload(url):
+    # Esta versión simula ser un navegador de forma más completa y sigue un proceso de 2 pasos.
     with create_scraper() as session:
+        # Añadimos cabeceras de un navegador común para pasar desapercibidos
+        session.headers.update({
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1'
+        })
+        
         try:
-            response = session.get(url)
-            if response.status_code != 200:
-                raise DirectDownloadLinkException(f"Error: Fireload respondió con el código {response.status_code}")
+            # --- Paso 1: Visitar la página inicial ---
+            print(f"FIRELOAD DEBUG: Accediendo a la URL inicial: {url}")
+            initial_response = session.get(url)
+            if initial_response.status_code != 200:
+                raise DirectDownloadLinkException(f"Error al acceder a la página inicial de Fireload. Código: {initial_response.status_code}")
 
-            # --- EXPRESIÓN REGULAR MEJORADA ---
-            # Se ha añadido "(?s)" al principio. Esto permite que el "." en la
-            # expresión regular también coincida con saltos de línea, haciendo
-            # la búsqueda mucho más robusta.
-            regex = r'(?s)window\.Fl\s*=\s*({.*?});'
+            html_content = initial_response.text
+
+            # --- Paso 2: Extraer el enlace intermedio ("dlink") del script ---
+            print("FIRELOAD DEBUG: Buscando el objeto window.Fl en el HTML...")
+            match = search(r'window\.Fl\s*=\s*({.*?});', html_content, search.__self__.S) # re.S para multilínea
             
-            match_obj = search(regex, response.text)
+            if not match:
+                raise DirectDownloadLinkException("No se pudo encontrar el bloque de script 'window.Fl' en la página. El sitio puede haber cambiado.")
             
-            if not match_obj:
-                raise DirectDownloadLinkException("ERROR: No se pudo encontrar el objeto de datos (window.Fl) en la página, incluso con la búsqueda mejorada.")
+            json_data = loads(match.group(1))
+            intermediate_link = json_data.get("dlink")
 
-            # Extraemos el texto JSON y lo convertimos a un diccionario
-            json_data_str = match_obj.group(1)
-            json_data = loads(json_data_str)
+            if not intermediate_link:
+                raise DirectDownloadLinkException("Se encontró el bloque de datos, pero no contenía el 'dlink' intermedio.")
+            
+            print(f"FIRELOAD DEBUG: Enlace intermedio encontrado: {intermediate_link}")
 
-            # Obtenemos el enlace directo de la clave "dlink"
-            direct_link = json_data.get("dlink")
+            # --- Paso 3: Visitar el enlace intermedio para obtener el enlace final ---
+            # La librería seguirá las redirecciones automáticamente. La URL final es la que queremos.
+            final_response = session.get(intermediate_link)
 
-            if not direct_link:
-                raise DirectDownloadLinkException("ERROR: Objeto de datos encontrado, pero la clave 'dlink' no está presente.")
+            if final_response.status_code != 200:
+                 raise DirectDownloadLinkException(f"El enlace intermedio de Fireload falló. Código: {final_response.status_code}")
 
+            # La URL final después de todas las redirecciones es nuestro enlace directo
+            direct_link = final_response.url
+            print(f"FIRELOAD DEBUG: Enlace final obtenido: {direct_link}")
+            
             return direct_link
 
         except DirectDownloadLinkException as e:
-            # Si ya es nuestro tipo de error, lo lanzamos directamente
-            raise e
+            raise e # Re-lanzar la excepción para que el handler la atrape
         except Exception as e:
-            # Si es otro tipo de error, lo envolvemos
-            raise DirectDownloadLinkException(f"ERROR procesando Fireload: {type(e).__name__} - {e}")
-
+            raise DirectDownloadLinkException(f"Error inesperado procesando Fireload: {type(e).__name__} - {e}")
 
 
 def get_captcha_token(session, params):
