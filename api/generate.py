@@ -65,16 +65,37 @@ def fireload(url):
             response = session.get(url)
             if response.status_code != 200:
                 raise DirectDownloadLinkException(f"Error: Fireload respondió con el código {response.status_code}")
-            match_obj = search(r'window\.Fl\s*=\s*({.*?});', response.text)
+
+            # --- EXPRESIÓN REGULAR MEJORADA ---
+            # Se ha añadido "(?s)" al principio. Esto permite que el "." en la
+            # expresión regular también coincida con saltos de línea, haciendo
+            # la búsqueda mucho más robusta.
+            regex = r'(?s)window\.Fl\s*=\s*({.*?});'
+            
+            match_obj = search(regex, response.text)
+            
             if not match_obj:
-                raise DirectDownloadLinkException("ERROR: No se pudo encontrar el objeto de datos (window.Fl) en la página.")
-            json_data = loads(match_obj.group(1))
+                raise DirectDownloadLinkException("ERROR: No se pudo encontrar el objeto de datos (window.Fl) en la página, incluso con la búsqueda mejorada.")
+
+            # Extraemos el texto JSON y lo convertimos a un diccionario
+            json_data_str = match_obj.group(1)
+            json_data = loads(json_data_str)
+
+            # Obtenemos el enlace directo de la clave "dlink"
             direct_link = json_data.get("dlink")
+
             if not direct_link:
-                raise DirectDownloadLinkException("ERROR: Objeto de datos encontrado, pero sin 'dlink'.")
+                raise DirectDownloadLinkException("ERROR: Objeto de datos encontrado, pero la clave 'dlink' no está presente.")
+
             return direct_link
+
+        except DirectDownloadLinkException as e:
+            # Si ya es nuestro tipo de error, lo lanzamos directamente
+            raise e
         except Exception as e:
+            # Si es otro tipo de error, lo envolvemos
             raise DirectDownloadLinkException(f"ERROR procesando Fireload: {type(e).__name__} - {e}")
+
 
 
 def get_captcha_token(session, params):
@@ -1642,7 +1663,7 @@ def qiwi(url):
     else:
         raise DirectDownloadLinkException("ERROR: File not found")
 
- 
+
 def mp4upload(url):
     with Session() as session:
         try:
@@ -1786,7 +1807,7 @@ def swisstransfer(link):
         "total_size": total_size,
         "header": "User-Agent:Mozilla/5.0",
     }
-    
+
 # ... y así sucesivamente para TODAS las funciones.
 
 # ===============================================================
@@ -2031,7 +2052,7 @@ class handler(BaseHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.end_headers()
-        
+
         json_data = json.dumps(data, default=str, ensure_ascii=False)
         self.wfile.write(json_data.encode('utf-8'))
 
