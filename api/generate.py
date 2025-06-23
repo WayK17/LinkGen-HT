@@ -77,16 +77,17 @@ def fireload(url):
         session = create_scraper()
         
         # Configurar headers para simular un navegador real
+        # IMPORTANTE: Eliminamos Accept-Encoding para evitar problemas de decodificación
         session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.9,es;q=0.8',
-            'Accept-Encoding': 'gzip, deflate, br',
+            # 'Accept-Encoding': 'gzip, deflate, br',  # COMENTADO para evitar compresión
             'Connection': 'keep-alive',
             'Upgrade-Insecure-Requests': '1',
             'Sec-Fetch-Dest': 'document',
             'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-Site': 'none', 
             'Sec-Fetch-User': '?1',
             'Cache-Control': 'max-age=0'
         })
@@ -101,8 +102,51 @@ def fireload(url):
                 f"Error al acceder a la página inicial de Fireload. Código: {initial_response.status_code}"
             )
 
-        html_content = initial_response.text
+        # --- Verificar y decodificar el contenido ---
+        print(f"FIRELOAD DEBUG: Response encoding: {initial_response.encoding}")
+        print(f"FIRELOAD DEBUG: Content-Type: {initial_response.headers.get('Content-Type', 'No especificado')}")
+        print(f"FIRELOAD DEBUG: Content-Encoding: {initial_response.headers.get('Content-Encoding', 'No especificado')}")
+        
+        # Intentar obtener el texto de diferentes maneras
+        try:
+            # Método 1: Usar .text (debería manejar la codificación automáticamente)
+            html_content = initial_response.text
+            print(f"FIRELOAD DEBUG: Longitud del contenido HTML: {len(html_content)}")
+            
+            # Verificar si el contenido se decodificó correctamente
+            if html_content.startswith('<!DOCTYPE') or html_content.startswith('<html'):
+                print("FIRELOAD DEBUG: ✅ HTML decodificado correctamente")
+            else:
+                print("FIRELOAD DEBUG: ⚠️  HTML no parece estar bien decodificado")
+                
+                # Método 2: Decodificar manualmente
+                try:
+                    import gzip
+                    html_content = gzip.decompress(initial_response.content).decode('utf-8')
+                    print("FIRELOAD DEBUG: ✅ Contenido decodificado manualmente con gzip")
+                except:
+                    # Método 3: Usar bytes directamente
+                    try:
+                        html_content = initial_response.content.decode('utf-8', errors='ignore')
+                        print("FIRELOAD DEBUG: ✅ Contenido decodificado desde bytes")
+                    except:
+                        print("FIRELOAD DEBUG: ❌ No se pudo decodificar el contenido")
+                        raise DirectDownloadLinkException("No se pudo decodificar el contenido HTML")
+        
+        except Exception as decode_error:
+            print(f"FIRELOAD DEBUG: Error decodificando: {decode_error}")
+            raise DirectDownloadLinkException(f"Error decodificando respuesta: {decode_error}")
+        
         print("FIRELOAD DEBUG: Página inicial obtenida correctamente")
+        
+        # Debug: Mostrar las primeras líneas del HTML para verificar
+        html_preview = html_content[:200].replace('\n', '\\n')
+        print(f"FIRELOAD DEBUG: Vista previa HTML: {html_preview}")
+        
+        # Verificar si realmente es HTML válido
+        if not any(tag in html_content.lower() for tag in ['<html', '<head', '<body', '<div']):
+            print("FIRELOAD DEBUG: ⚠️  El contenido no parece ser HTML válido")
+            raise DirectDownloadLinkException("El contenido recibido no es HTML válido")
         
         # --- Detección de medidas anti-bot ---
         anti_bot_indicators = [
