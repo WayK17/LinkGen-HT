@@ -60,189 +60,323 @@ def is_share_link(link: str):
 
 # Ejemplo de cómo debe verse el inicio de las funciones:
 
-def fireload_selenium(url):
+def fireload(url):
     """
-    Extrae enlaces de Fireload usando Selenium para manejar CAPTCHA y JavaScript
+    Extrae el enlace directo de descarga de Fireload
+    Incluye detección de anti-bot y necesidad de JavaScript
     """
-    from selenium import webdriver
-    from selenium.webdriver.common.by import By
-    from selenium.webdriver.support.ui import WebDriverWait
-    from selenium.webdriver.support import expected_conditions as EC
-    from selenium.webdriver.chrome.options import Options
-    from selenium.common.exceptions import TimeoutException, WebDriverException
-    import json
+    # Asegúrate de que estos imports estén en la parte superior del archivo
+    from cloudscraper import create_scraper
+    from re import search
+    from json import loads
     import time
+    from urllib.parse import urljoin
     
-    # Configurar Chrome para parecer más humano
-    chrome_options = Options()
-    chrome_options.add_argument('--no-sandbox')
-    chrome_options.add_argument('--disable-dev-shm-usage')
-    chrome_options.add_argument('--disable-blink-features=AutomationControlled')
-    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    chrome_options.add_experimental_option('useAutomationExtension', False)
-    
-    # Headers más realistas
-    chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
-    
-    # Opcional: ejecutar en modo headless (sin ventana)
-    # chrome_options.add_argument('--headless')
-    
-    driver = None
     try:
-        print(f"FIRELOAD SELENIUM: Iniciando navegador para {url}")
-        driver = webdriver.Chrome(options=chrome_options)
+        # Crear sesión con cloudscraper
+        session = create_scraper()
         
-        # Ocultar que es un bot
-        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+        # Configurar headers para simular un navegador real
+        # IMPORTANTE: Eliminamos Accept-Encoding para evitar problemas de decodificación
+        session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9,es;q=0.8',
+            # 'Accept-Encoding': 'gzip, deflate, br',  # COMENTADO para evitar compresión
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none', 
+            'Sec-Fetch-User': '?1',
+            'Cache-Control': 'max-age=0'
+        })
         
-        # Navegar a la página
-        driver.get(url)
-        print("FIRELOAD SELENIUM: Página cargada, esperando contenido...")
+        print(f"FIRELOAD DEBUG: Accediendo a la URL inicial: {url}")
         
-        # Esperar un poco para que la página se cargue completamente
-        time.sleep(3)
+        # --- Paso 1: Obtener la página inicial ---
+        initial_response = session.get(url, timeout=30, allow_redirects=True)
         
-        # Verificar si hay CAPTCHA visible
+        if initial_response.status_code != 200:
+            raise DirectDownloadLinkException(
+                f"Error al acceder a la página inicial de Fireload. Código: {initial_response.status_code}"
+            )
+
+        # --- Verificar y decodificar el contenido ---
+        print(f"FIRELOAD DEBUG: Response encoding: {initial_response.encoding}")
+        print(f"FIRELOAD DEBUG: Content-Type: {initial_response.headers.get('Content-Type', 'No especificado')}")
+        print(f"FIRELOAD DEBUG: Content-Encoding: {initial_response.headers.get('Content-Encoding', 'No especificado')}")
+        
+        # Intentar obtener el texto de diferentes maneras
         try:
-            captcha_elements = driver.find_elements(By.CSS_SELECTOR, 
-                "[id*='captcha'], [class*='captcha'], [id*='recaptcha'], [class*='recaptcha']")
+            # Método 1: Usar .text (debería manejar la codificación automáticamente)
+            html_content = initial_response.text
+            print(f"FIRELOAD DEBUG: Longitud del contenido HTML: {len(html_content)}")
             
-            if captcha_elements:
-                print("FIRELOAD SELENIUM: 🚨 CAPTCHA detectado - INTERVENCIÓN MANUAL REQUERIDA")
-                print("FIRELOAD SELENIUM: Por favor, resuelve el CAPTCHA manualmente en el navegador")
-                print("FIRELOAD SELENIUM: Esperando 30 segundos para intervención manual...")
+            # Verificar si el contenido se decodificó correctamente
+            if html_content.startswith('<!DOCTYPE') or html_content.startswith('<html'):
+                print("FIRELOAD DEBUG: ✅ HTML decodificado correctamente")
+            else:
+                print("FIRELOAD DEBUG: ⚠️  HTML no parece estar bien decodificado")
                 
-                # Dar tiempo al usuario para resolver el CAPTCHA
-                time.sleep(30)
-                
-        except Exception as captcha_check_error:
-            print(f"FIRELOAD SELENIUM: Error verificando CAPTCHA: {captcha_check_error}")
-        
-        # Método 1: Buscar window.Fl en JavaScript
-        print("FIRELOAD SELENIUM: Buscando window.Fl...")
-        try:
-            fl_data = driver.execute_script("return window.Fl;")
-            if fl_data and isinstance(fl_data, dict):
-                print(f"FIRELOAD SELENIUM: ✅ window.Fl encontrado: {fl_data}")
-                
-                dlink = fl_data.get('dlink') or fl_data.get('link') or fl_data.get('url')
-                if dlink:
-                    print(f"FIRELOAD SELENIUM: Enlace intermedio: {dlink}")
-                    
-                    # Navegar al enlace intermedio
-                    driver.get(dlink)
-                    time.sleep(2)
-                    
-                    final_url = driver.current_url
-                    print(f"FIRELOAD SELENIUM: ✅ Enlace final: {final_url}")
-                    
-                    return final_url
-        except Exception as js_error:
-            print(f"FIRELOAD SELENIUM: Error ejecutando JavaScript: {js_error}")
-        
-        # Método 2: Buscar en el HTML usando expresiones regulares
-        print("FIRELOAD SELENIUM: Buscando en HTML...")
-        try:
-            html_content = driver.page_source
-            
-            import re
-            patterns = [
-                r'window\.Fl\s*=\s*({.*?});',
-                r'var\s+Fl\s*=\s*({.*?});',
-                r'Fl\s*=\s*({.*?});'
-            ]
-            
-            for pattern in patterns:
-                match = re.search(pattern, html_content, re.DOTALL)
-                if match:
-                    try:
-                        fl_data = json.loads(match.group(1))
-                        dlink = fl_data.get('dlink') or fl_data.get('link') or fl_data.get('url')
-                        
-                        if dlink:
-                            print(f"FIRELOAD SELENIUM: Enlace encontrado con regex: {dlink}")
-                            driver.get(dlink)
-                            time.sleep(2)
-                            return driver.current_url
-                            
-                    except json.JSONDecodeError as json_error:
-                        print(f"FIRELOAD SELENIUM: Error parseando JSON: {json_error}")
-                        continue
-                        
-        except Exception as html_error:
-            print(f"FIRELOAD SELENIUM: Error analizando HTML: {html_error}")
-        
-        # Método 3: Buscar enlaces de descarga directos
-        print("FIRELOAD SELENIUM: Buscando enlaces de descarga...")
-        try:
-            # Buscar botones o enlaces de descarga
-            download_selectors = [
-                "a[href*='download']",
-                "button[onclick*='download']", 
-                ".download-button",
-                "#download",
-                "a[href*='.mkv']",
-                "a[href*='.mp4']",
-                "a[href*='.avi']"
-            ]
-            
-            for selector in download_selectors:
+                # Método 2: Decodificar manualmente
                 try:
-                    elements = driver.find_elements(By.CSS_SELECTOR, selector)
-                    for element in elements:
-                        href = element.get_attribute('href')
-                        if href and 'fireload.com' not in href:
-                            print(f"FIRELOAD SELENIUM: ✅ Enlace directo encontrado: {href}")
-                            return href
+                    import gzip
+                    html_content = gzip.decompress(initial_response.content).decode('utf-8')
+                    print("FIRELOAD DEBUG: ✅ Contenido decodificado manualmente con gzip")
                 except:
-                    continue
-                    
-        except Exception as download_error:
-            print(f"FIRELOAD SELENIUM: Error buscando enlaces de descarga: {download_error}")
+                    # Método 3: Usar bytes directamente
+                    try:
+                        html_content = initial_response.content.decode('utf-8', errors='ignore')
+                        print("FIRELOAD DEBUG: ✅ Contenido decodificado desde bytes")
+                    except:
+                        print("FIRELOAD DEBUG: ❌ No se pudo decodificar el contenido")
+                        raise DirectDownloadLinkException("No se pudo decodificar el contenido HTML")
         
-        # Método 4: Esperar y detectar redirecciones automáticas
-        print("FIRELOAD SELENIUM: Esperando posibles redirecciones automáticas...")
-        initial_url = driver.current_url
+        except Exception as decode_error:
+            print(f"FIRELOAD DEBUG: Error decodificando: {decode_error}")
+            raise DirectDownloadLinkException(f"Error decodificando respuesta: {decode_error}")
         
-        # Esperar hasta 15 segundos por una redirección
-        for i in range(15):
-            time.sleep(1)
-            current_url = driver.current_url
+        print("FIRELOAD DEBUG: Página inicial obtenida correctamente")
+        
+        # Debug: Mostrar las primeras líneas del HTML para verificar
+        html_preview = html_content[:200].replace('\n', '\\n')
+        print(f"FIRELOAD DEBUG: Vista previa HTML: {html_preview}")
+        
+        # Verificar si realmente es HTML válido
+        if not any(tag in html_content.lower() for tag in ['<html', '<head', '<body', '<div']):
+            print("FIRELOAD DEBUG: ⚠️  El contenido no parece ser HTML válido")
+            raise DirectDownloadLinkException("El contenido recibido no es HTML válido")
+        
+        # --- Detección de medidas anti-bot ---
+        anti_bot_indicators = [
+            "cloudflare", "cf-ray", "challenge", "captcha", "bot detection", 
+            "please enable javascript", "browser check", "ddos protection",
+            "__cf_bm", "cf_clearance", "turnstile", "hcaptcha", "recaptcha"
+        ]
+        
+        html_lower = html_content.lower()
+        detected_protections = [indicator for indicator in anti_bot_indicators if indicator in html_lower]
+        
+        if detected_protections:
+            print(f"FIRELOAD DEBUG: ⚠️  Protecciones anti-bot detectadas: {detected_protections}")
             
-            if current_url != initial_url and 'fireload.com' not in current_url:
-                print(f"FIRELOAD SELENIUM: ✅ Redirección automática detectada: {current_url}")
-                return current_url
+            # Verificar específicamente Cloudflare
+            if "cloudflare" in html_lower or "cf-ray" in html_lower:
+                print("FIRELOAD DEBUG: 🛡️  Cloudflare detectado - cloudscraper debería manejarlo")
+                # Esperar un poco más para que cloudscraper procese
+                time.sleep(2)
+            
+            # Verificar CAPTCHA
+            if any(cap in html_lower for cap in ["captcha", "hcaptcha", "recaptcha", "turnstile"]):
+                print("FIRELOAD DEBUG: 🚫 CAPTCHA detectado - Se requiere intervención manual")
+                raise DirectDownloadLinkException(
+                    "CAPTCHA detectado. No se puede procesar automáticamente."
+                )
         
-        # Si llegamos aquí, no pudimos extraer el enlace
-        print("FIRELOAD SELENIUM: ❌ No se pudo extraer el enlace de descarga")
+        # --- Detección de dependencias JavaScript ---
+        js_indicators = [
+            "document.write", "window.location", "setTimeout", "setInterval",
+            "eval(", "document.getElementById", "createElement", "appendChild"
+        ]
         
-        # Debug: Guardar screenshot y HTML para análisis
-        try:
-            driver.save_screenshot("fireload_debug.png")
-            with open("fireload_debug.html", "w", encoding="utf-8") as f:
-                f.write(driver.page_source)
-            print("FIRELOAD SELENIUM: Debug guardado en fireload_debug.png y fireload_debug.html")
-        except:
-            pass
+        js_dependencies = [indicator for indicator in js_indicators if indicator in html_content]
         
-        raise DirectDownloadLinkException(
-            "No se pudo extraer el enlace de Fireload. Verifica los archivos de debug generados."
-        )
+        if js_dependencies:
+            print(f"FIRELOAD DEBUG: ⚠️  JavaScript detectado: {js_dependencies[:3]}...")  # Solo mostrar primeros 3
         
-    except WebDriverException as driver_error:
-        raise DirectDownloadLinkException(f"Error del navegador: {driver_error}")
+        # Verificar si el contenido parece ser cargado dinámicamente
+        if len(html_content.strip()) < 1000:
+            print("FIRELOAD DEBUG: ⚠️  Contenido HTML muy pequeño - posible carga dinámica con JS")
+        
+        # Verificar patrones específicos que indican necesidad de JS
+        if "loading..." in html_lower or "please wait" in html_lower:
+            print("FIRELOAD DEBUG: ⚠️  Página muestra mensaje de carga - requiere JavaScript")
+        
+        # Verificar scripts de inicialización
+        if "DOMContentLoaded" in html_content or "window.onload" in html_content:
+            print("FIRELOAD DEBUG: ℹ️  Scripts de inicialización detectados")
+            time.sleep(1)  # Dar tiempo extra
+        
+        # Debug: Mostrar parte del HTML para verificar contenido
+        if "window.Fl" in html_content:
+            print("FIRELOAD DEBUG: ✅ Encontrado 'window.Fl' en el HTML")
+        else:
+            print("FIRELOAD DEBUG: ❌ NO se encontró 'window.Fl' en el HTML")
+            
+            # Verificar si el contenido está siendo cargado por JavaScript
+            if "<script" in html_content and len([s for s in html_content.split("<script") if "Fl" in s]) > 0:
+                print("FIRELOAD DEBUG: 🔍 'Fl' encontrado en scripts - podría requerir ejecución JS")
+            
+            # Buscar patrones alternativos
+            if "Fl=" in html_content:
+                print("FIRELOAD DEBUG: ✅ Encontrado patrón alternativo 'Fl='")
+            elif "dlink" in html_content:
+                print("FIRELOAD DEBUG: ✅ Encontrado 'dlink' en el HTML")
+            else:
+                print("FIRELOAD DEBUG: ❌ No se encontraron patrones conocidos")
+                
+                # Verificar si necesitamos JavaScript
+                if any(indicator in html_content for indicator in [
+                    "noscript", "Please enable JavaScript", "JavaScript is required",
+                    "document.createElement", "dynamically loaded"
+                ]):
+                    print("FIRELOAD DEBUG: 🚨 JAVASCRIPT REQUERIDO - El contenido se carga dinámicamente")
+                    raise DirectDownloadLinkException(
+                        "El sitio requiere JavaScript para cargar el contenido. "
+                        "Considera usar Selenium o un navegador automatizado."
+                    )
+
+        # --- Paso 2: Extraer datos del objeto window.Fl ---
+        print("FIRELOAD DEBUG: Buscando el objeto window.Fl en el HTML...")
+        
+        # Intentar múltiples patrones de regex
+        patterns = [
+            r'(?s)window\.Fl\s*=\s*({.*?});',  # Patrón original
+            r'(?s)var\s+Fl\s*=\s*({.*?});',    # Patrón alternativo 1
+            r'(?s)Fl\s*=\s*({.*?});',          # Patrón alternativo 2
+            r'(?s)window\[\"Fl\"\]\s*=\s*({.*?});'  # Patrón alternativo 3
+        ]
+        
+        json_data = None
+        for i, pattern in enumerate(patterns):
+            match_obj = search(pattern, html_content)
+            if match_obj:
+                print(f"FIRELOAD DEBUG: Patrón {i+1} encontró coincidencia")
+                try:
+                    json_data = loads(match_obj.group(1))
+                    break
+                except Exception as json_error:
+                    print(f"FIRELOAD DEBUG: Error parseando JSON con patrón {i+1}: {json_error}")
+                    continue
+        
+        if not json_data:
+            # Debug adicional: mostrar parte del HTML donde debería estar
+            start_pos = html_content.find("Fl")
+            if start_pos != -1:
+                sample = html_content[max(0, start_pos-100):start_pos+200]
+                print(f"FIRELOAD DEBUG: Contexto donde se encontró 'Fl': {sample}")
+            
+            # Análisis adicional si no se encuentra el patrón
+            print("FIRELOAD DEBUG: 🔍 Analizando posibles causas del fallo...")
+            
+            # Verificar si hay contenido mínimo
+            if len(html_content) < 500:
+                print("FIRELOAD DEBUG: ⚠️  HTML muy corto - posible redirección o error")
+            
+            # Verificar si hay JavaScript que genere el contenido
+            script_count = html_content.count("<script")
+            print(f"FIRELOAD DEBUG: Encontrados {script_count} tags <script>")
+            
+            if script_count > 5:
+                print("FIRELOAD DEBUG: 🚨 Muchos scripts detectados - contenido probablemente generado por JS")
+                
+                # Sugerir alternativa con selenium
+                selenium_suggestion = """
+                SUGERENCIA: Considera usar Selenium para este sitio:
+                
+                from selenium import webdriver
+                from selenium.webdriver.common.by import By
+                from selenium.webdriver.support.ui import WebDriverWait
+                from selenium.webdriver.support import expected_conditions as EC
+                
+                driver = webdriver.Chrome()  # o Firefox()
+                driver.get(url)
+                
+                # Esperar a que se cargue el objeto Fl
+                wait = WebDriverWait(driver, 10)
+                driver.execute_script("return window.Fl")
+                """
+                print(f"FIRELOAD DEBUG: {selenium_suggestion}")
+            
+            raise DirectDownloadLinkException(
+                "No se pudo encontrar o parsear el bloque de script 'window.Fl' en la página. "
+                "El sitio podría requerir JavaScript o tener protecciones anti-bot activas."
+            )
+        
+        print(f"FIRELOAD DEBUG: Datos JSON extraídos: {json_data}")
+        
+        # Buscar el enlace intermedio
+        intermediate_link = json_data.get("dlink") or json_data.get("link") or json_data.get("url")
+        
+        if not intermediate_link:
+            # Mostrar las claves disponibles para debug
+            available_keys = list(json_data.keys())
+            print(f"FIRELOAD DEBUG: Claves disponibles en JSON: {available_keys}")
+            raise DirectDownloadLinkException(
+                f"No se encontró enlace intermedio en los datos. Claves disponibles: {available_keys}"
+            )
+
+        print(f"FIRELOAD DEBUG: Enlace intermedio encontrado: {intermediate_link}")
+        
+        # Validar que el enlace intermedio sea una URL válida
+        if not intermediate_link.startswith(('http://', 'https://')):
+            # Si es una URL relativa, convertirla a absoluta
+            intermediate_link = urljoin(url, intermediate_link)
+            print(f"FIRELOAD DEBUG: URL convertida a absoluta: {intermediate_link}")
+
+        # --- Paso 3: Seguir el enlace intermedio ---
+        print("FIRELOAD DEBUG: Siguiendo enlace intermedio...")
+        
+        # Simular comportamiento humano con pausa
+        time.sleep(1)
+        
+        final_response = session.get(intermediate_link, timeout=30, allow_redirects=True)
+
+        if final_response.status_code != 200:
+            print(f"FIRELOAD DEBUG: ❌ Error en enlace intermedio: {final_response.status_code}")
+            
+            # Verificar si es un problema de anti-bot en el segundo paso
+            if final_response.status_code == 403:
+                print("FIRELOAD DEBUG: 🚫 Error 403 - Posible bloqueo anti-bot")
+            elif final_response.status_code == 429:
+                print("FIRELOAD DEBUG: 🚫 Error 429 - Rate limiting detectado")
+                print("FIRELOAD DEBUG: 💡 Sugerencia: Añadir delays más largos entre requests")
+            
+            raise DirectDownloadLinkException(
+                f"El enlace intermedio de Fireload falló. Código: {final_response.status_code}"
+            )
+
+        # La URL final después de redirecciones
+        direct_link = final_response.url
+        print(f"FIRELOAD DEBUG: ✅ Enlace directo obtenido: {direct_link}")
+        
+        # Validar que el enlace directo sea válido
+        if not direct_link or direct_link == intermediate_link:
+            print("FIRELOAD DEBUG: ❌ El enlace directo no es válido o no cambió")
+            
+            # Verificar si la respuesta final contiene indicadores de problemas
+            final_content = final_response.text.lower()
+            
+            if "access denied" in final_content:
+                raise DirectDownloadLinkException("Acceso denegado al enlace final")
+            elif "rate limit" in final_content:
+                raise DirectDownloadLinkException("Rate limit alcanzado")
+            elif len(final_content) < 100:
+                raise DirectDownloadLinkException("Respuesta final muy corta - posible error")
+            
+            raise DirectDownloadLinkException("No se pudo obtener un enlace directo válido")
+        
+        # Verificar que el enlace directo sea de descarga (no otra página de Fireload)
+        if "fireload.com" in direct_link:
+            print("FIRELOAD DEBUG: ⚠️  El enlace directo aún contiene fireload.com - posible problema")
+        
+        return direct_link
+
+    except DirectDownloadLinkException:
+        raise
     except Exception as e:
-        raise DirectDownloadLinkException(f"Error inesperado con Selenium: {e}")
+        print(f"FIRELOAD DEBUG: Error inesperado: {type(e).__name__} - {str(e)}")
+        raise DirectDownloadLinkException(
+            f"Error inesperado procesando Fireload: {type(e).__name__} - {str(e)}"
+        )
     finally:
-        if driver:
+        # Cerrar la sesión si existe
+        if 'session' in locals():
             try:
-                driver.quit()
-                print("FIRELOAD SELENIUM: Navegador cerrado")
+                session.close()
             except:
                 pass
-
-
-
 
 
 def get_captcha_token(session, params):
