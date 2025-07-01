@@ -60,18 +60,18 @@ def fireload(url):
     # Usamos asyncio.run para ejecutar nuestra función asíncrona de Playwright
     return asyncio.run(fireload_async(url))
 
-
 async def fireload_async(url):
     browserless_api_key = os.getenv('BROWSERLESS_API_KEY')
     if not browserless_api_key:
         raise DirectDownloadLinkException("ERROR: La API Key de BROWSERLESS no está configurada en Vercel.")
 
-    # 1. URL DE CONEXIÓN CORRECTA
-    browserless_url = f'wss://chrome.browserless.io?token={browserless_api_key}&blockAds'
+    # 1. LA URL DE CONEXIÓN DEFINITIVAMENTE CORRECTA, PROPORCIONADA POR TI
+    browserless_url = f'wss://production-sfo.browserless.io?token={browserless_api_key}'
 
     browser = None
     async with async_playwright() as p:
         try:
+            # Conectamos al navegador en Browserless.io
             browser = await p.chromium.connect_over_cdp(browserless_url)
             page = await browser.new_page()
             
@@ -100,7 +100,6 @@ async def fireload_async(url):
             is_folder = "/d/" in url or "/f/" in url
 
             if is_folder:
-                # Lógica para carpetas (sin cambios)
                 print("FIRELOAD/PLAYWRIGHT: Carpeta detectada.")
                 await page.wait_for_selector('//tbody/tr/td/a', timeout=30000)
                 file_elements = await page.query_selector_all('//tbody/tr/td/a')
