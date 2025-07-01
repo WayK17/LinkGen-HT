@@ -65,7 +65,7 @@ async def fireload_async(url):
     if not browserless_api_key:
         raise DirectDownloadLinkException("ERROR: La API Key de BROWSERLESS no está configurada en Vercel.")
 
-    # 1. LA URL DE CONEXIÓN DEFINITIVAMENTE CORRECTA
+    # Usamos la URL de conexión correcta.
     browserless_url = f'wss://production-sfo.browserless.io?token={browserless_api_key}'
 
     browser = None
@@ -78,45 +78,43 @@ async def fireload_async(url):
             await page.goto(url, timeout=60000, wait_until='domcontentloaded')
             print(f"FIRELOAD/PLAYWRIGHT: Página cargada: {await page.title()}")
 
-            # 2. LÓGICA COMPLETA PARA CARPETAS Y ARCHIVOS
+            # Lógica para carpetas (sin cambios, ya que no estamos usando este método para ellas)
             is_folder = "/d/" in url or "/f/" in url
-
             if is_folder:
+                # ... (la lógica de carpetas permanece aquí)
                 print("FIRELOAD/PLAYWRIGHT: Carpeta detectada. Extrayendo enlaces...")
                 await page.wait_for_selector('//tbody/tr/td/a', timeout=30000)
                 file_elements = await page.query_selector_all('//tbody/tr/td/a')
-                
                 if not file_elements:
                     raise DirectDownloadLinkException("Carpeta detectada, pero no se encontraron archivos en ella.")
-                
-                details = {"contents": [], "title": await page.title(), "total_size": 0}
-                
+                details = {"contents": [], "title": await page.title()}
                 for element in file_elements:
                     filename = await element.inner_text()
                     file_url = await element.get_attribute('href')
                     details["contents"].append({"filename": filename, "url": file_url})
-                
                 return details
+
+            # --- NUEVA ESTRATEGIA: INTERCEPTAR PETICIONES DE RED ---
             
-            else: # Es un archivo individual
-                print("FIRELOAD/PLAYWRIGHT: Archivo individual detectado.")
-                
-                # 3. ESTRATEGIA DE SCRAPING PROFESIONAL
-                download_element_selector = "//a[contains(., 'Download File')]"
-                
-                print(f"FIRELOAD/PLAYWRIGHT: Esperando el elemento de descarga: '{download_element_selector}'")
-                await page.wait_for_selector(download_element_selector, state='visible', timeout=25000)
-                print("FIRELOAD/PLAYWRIGHT: Elemento de descarga encontrado.")
+            download_element_selector = "//a[contains(., 'Download File')]"
+            
+            print(f"FIRELOAD/PLAYWRIGHT: Esperando el elemento de descarga: '{download_element_selector}'")
+            await page.wait_for_selector(download_element_selector, state='visible', timeout=25000)
+            print("FIRELOAD/PLAYWRIGHT: Elemento de descarga encontrado.")
 
-                async with page.expect_download(timeout=25000) as download_info:
-                    print("FIRELOAD/PLAYWRIGHT: Haciendo clic para iniciar la descarga...")
-                    await page.click(download_element_selector)
-                
-                download = await download_info.value
-                direct_link = download.url
-                print(f"FIRELOAD/PLAYWRIGHT: ¡Descarga iniciada! Enlace directo obtenido: {direct_link}")
+            # Preparamos el "espía" de red ANTES de hacer clic
+            # Escuchará la próxima petición de red que sea un 'document' (la descarga)
+            async with page.expect_request("**/download_token/**") as request_info:
+                print("FIRELOAD/PLAYWRIGHT: Haciendo clic y esperando la petición de red...")
+                await page.click(download_element_selector)
+            
+            # Obtenemos la petición que hemos interceptado
+            request = await request_info.value
+            direct_link = request.url
+            
+            print(f"FIRELOAD/PLAYWRIGHT: ¡Petición de red interceptada! Enlace directo obtenido: {direct_link}")
 
-                return direct_link
+            return direct_link
 
         except Exception as e:
             error_message = f"Error con Playwright: {type(e).__name__} - {e}"
