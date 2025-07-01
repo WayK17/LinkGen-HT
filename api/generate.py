@@ -52,85 +52,50 @@ def is_share_link(link: str):
 # ===============================================================
 #  INICIO DEL CÓDIGO COMPLETO DE SCRAPERS
 # ===============================================================
-
 def fireload(url):
-    """
-    Extrae enlaces de Fireload usando Playwright y Browserless.io.
-    Maneja tanto archivos individuales como carpetas.
-    """
-    # Usamos asyncio.run para ejecutar nuestra función asíncrona de Playwright
-    return asyncio.run(fireload_async(url))
-
-async def fireload_async(url):
-    browserless_api_key = os.getenv('BROWSERLESS_API_KEY')
-    if not browserless_api_key:
-        raise DirectDownloadLinkException("ERROR: La API Key de BROWSERLESS no está configurada en Vercel.")
-
-    # URL de conexión correcta, verificada.
-    browserless_url = f'wss://production-sfo.browserless.io?token={browserless_api_key}&blockAds'
-
-    browser = None
-    async with async_playwright() as p:
+    # Usamos la herramienta ligera que es menos detectable
+    with create_scraper() as session:
         try:
-            browser = await p.chromium.connect_over_cdp(browserless_url)
-            page = await browser.new_page()
+            # --- Paso 1: Obtenemos el HTML inicial ---
+            print("FIRELOAD/SIMPLE: Obteniendo la página inicial...")
+            initial_response = session.get(url)
+            if initial_response.status_code != 200:
+                raise DirectDownloadLinkException(f"Error al acceder a la página. Código: {initial_response.status_code}")
+
+            # --- Paso 2: Extraemos el enlace intermedio del script ---
+            print("FIRELOAD/SIMPLE: Buscando el enlace intermedio en el script...")
+            # Usamos (?s) para que el punto "." coincida también con saltos de línea.
+            match = search(r'(?s)window\.Fl\s*=\s*({.*?});', initial_response.text)
             
-            print(f"FIRELOAD/PLAYWRIGHT: Navegando a {url}")
-            await page.goto(url, timeout=60000)
-            print(f"FIRELOAD/PLAYWRIGHT: Página cargada.")
-
-            # --- Lógica para carpetas (sin cambios) ---
-            is_folder = "/d/" in url or "/f/" in url
-            if is_folder:
-                # ... (la lógica de carpetas se mantiene igual)
-                print("FIRELOAD/PLAYWRIGHT: Carpeta detectada...")
-                await page.wait_for_selector('//tbody/tr/td/a', timeout=30000)
-                file_elements = await page.query_selector_all('//tbody/tr/td/a')
-                if not file_elements:
-                    raise DirectDownloadLinkException("Carpeta detectada, pero sin archivos.")
-                details = {"contents": [], "title": await page.title()}
-                for element in file_elements:
-                    filename = await element.inner_text()
-                    file_url = await element.get_attribute('href')
-                    details["contents"].append({"filename": filename, "url": file_url})
-                return details
-
-            # --- ESTRATEGIA FINAL: EL LADRÓN DE DESCARGAS ---
+            if not match:
+                raise DirectDownloadLinkException("No se pudo encontrar el bloque de datos 'window.Fl' en la página.")
             
-            download_element_selector = "//a[contains(., 'Download File')]"
+            json_data = loads(match.group(1))
+            intermediate_link = json_data.get("dlink")
+
+            if not intermediate_link:
+                raise DirectDownloadLinkException("Bloque de datos encontrado, pero sin el 'dlink' intermedio.")
             
-            print(f"FIRELOAD/PLAYWRIGHT: Buscando el elemento '{download_element_selector}'")
-            await page.wait_for_selector(download_element_selector, state='visible', timeout=25000)
-            print("FIRELOAD/PLAYWRIGHT: Elemento de descarga encontrado.")
+            print(f"FIRELOAD/SIMPLE: Enlace intermedio encontrado: {intermediate_link}")
 
-            # Preparamos al "ladrón" (un Future de asyncio)
-            download_future = asyncio.get_event_loop().create_future()
+            # --- Paso 3: Visitamos el enlace intermedio y CAPTURAMOS la redirección ---
+            print("FIRELOAD/SIMPLE: Visitando el enlace intermedio para capturar la redirección...")
+            final_response = session.get(intermediate_link, allow_redirects=False)
 
-            # Definimos el comportamiento del ladrón: cuando vea una descarga, resolverá el Future.
-            page.on("download", lambda download: download_future.set_result(download) if not download_future.done() else None)
-
-            # Hacemos clic para activar la trampa
-            print("FIRELOAD/PLAYWRIGHT: Haciendo clic para activar la descarga...")
-            await page.click(download_element_selector)
-
-            # El ladrón espera hasta 20 segundos por el objeto de descarga
-            print("FIRELOAD/PLAYWRIGHT: El ladrón está esperando el botín...")
-            download = await asyncio.wait_for(download_future, timeout=20.0)
-
-            # Robamos la URL del botín
-            direct_link = download.url
-            print(f"FIRELOAD/PLAYWRIGHT: ¡VICTORIA! Botín asegurado. Enlace directo: {direct_link}")
+            # Esperamos una respuesta de redirección (3xx)
+            if final_response.status_code in [301, 302, 307, 308]:
+                # ¡El enlace final está en la cabecera 'Location'!
+                direct_link = final_response.headers.get('Location')
+                if direct_link:
+                    print(f"FIRELOAD/SIMPLE: ¡VICTORIA! Redirección capturada. Enlace final: {direct_link}")
+                    return direct_link
             
-            return direct_link
+            # Si no hubo redirección, algo salió mal.
+            print(f"FIRELOAD/SIMPLE: Fracaso. No se recibió la redirección esperada. Código: {final_response.status_code}")
+            raise DirectDownloadLinkException("No se recibió la redirección esperada desde el enlace intermedio.")
 
         except Exception as e:
-            error_message = f"Error con Playwright: {type(e).__name__} - {e}"
-            print(f"FIRELOAD/PLAYWRIGHT: {error_message}")
-            raise DirectDownloadLinkException(error_message)
-
-        finally:
-            if browser and browser.is_connected():
-                await browser.close()
+            raise DirectDownloadLinkException(f"Error procesando Fireload: {type(e).__name__} - {e}")
 
 
 
