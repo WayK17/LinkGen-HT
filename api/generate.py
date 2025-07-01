@@ -76,16 +76,26 @@ async def fireload_async(url):
             page = await browser.new_page()
             
             print(f"FIRELOAD/PLAYWRIGHT: Navegando a {url}")
-            await page.goto(url, timeout=60000, wait_until='domcontentloaded')
+            await page.goto(url, timeout=60000)
             print(f"FIRELOAD/PLAYWRIGHT: Página cargada.")
 
-            # La lógica para carpetas se mantiene igual (si la necesitas para Fireload)
+            # --- Lógica para carpetas (sin cambios) ---
             is_folder = "/d/" in url or "/f/" in url
             if is_folder:
-                # ... (lógica de carpetas) ...
-                return {"error": "El manejo de carpetas de Fireload aún no está implementado."}
+                # ... (la lógica de carpetas se mantiene igual)
+                print("FIRELOAD/PLAYWRIGHT: Carpeta detectada...")
+                await page.wait_for_selector('//tbody/tr/td/a', timeout=30000)
+                file_elements = await page.query_selector_all('//tbody/tr/td/a')
+                if not file_elements:
+                    raise DirectDownloadLinkException("Carpeta detectada, pero sin archivos.")
+                details = {"contents": [], "title": await page.title()}
+                for element in file_elements:
+                    filename = await element.inner_text()
+                    file_url = await element.get_attribute('href')
+                    details["contents"].append({"filename": filename, "url": file_url})
+                return details
 
-            # --- ESTRATEGIA FINAL: ESPERAR EL EVENTO DE DESCARGA ---
+            # --- ESTRATEGIA FINAL: EL LADRÓN DE DESCARGAS ---
             
             download_element_selector = "//a[contains(., 'Download File')]"
             
@@ -93,17 +103,23 @@ async def fireload_async(url):
             await page.wait_for_selector(download_element_selector, state='visible', timeout=25000)
             print("FIRELOAD/PLAYWRIGHT: Elemento de descarga encontrado.")
 
-            # Preparamos el listener para el evento de descarga ANTES de hacer el clic
-            async with page.expect_download(timeout=30000) as download_info:
-                print("FIRELOAD/PLAYWRIGHT: Haciendo clic y esperando que la descarga comience...")
-                await page.click(download_element_selector)
-            
-            # Obtenemos la información de la descarga que se ha iniciado
-            download = await download_info.value
-            
-            # La URL del objeto de descarga es nuestro enlace directo
+            # Preparamos al "ladrón" (un Future de asyncio)
+            download_future = asyncio.get_event_loop().create_future()
+
+            # Definimos el comportamiento del ladrón: cuando vea una descarga, resolverá el Future.
+            page.on("download", lambda download: download_future.set_result(download) if not download_future.done() else None)
+
+            # Hacemos clic para activar la trampa
+            print("FIRELOAD/PLAYWRIGHT: Haciendo clic para activar la descarga...")
+            await page.click(download_element_selector)
+
+            # El ladrón espera hasta 20 segundos por el objeto de descarga
+            print("FIRELOAD/PLAYWRIGHT: El ladrón está esperando el botín...")
+            download = await asyncio.wait_for(download_future, timeout=20.0)
+
+            # Robamos la URL del botín
             direct_link = download.url
-            print(f"FIRELOAD/PLAYWRIGHT: ¡VICTORIA! Enlace de descarga capturado: {direct_link}")
+            print(f"FIRELOAD/PLAYWRIGHT: ¡VICTORIA! Botín asegurado. Enlace directo: {direct_link}")
             
             return direct_link
 
