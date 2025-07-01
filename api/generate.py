@@ -52,69 +52,321 @@ def is_share_link(link: str):
 # ===============================================================
 #  INICIO DEL CÓDIGO COMPLETO DE SCRAPERS
 # ===============================================================
+from cloudscraper import create_scraper
+from re import search
+from json import loads
+import time
+import random
+
+
 def fireload(url):
-    # Esta es la versión final, con un "disfraz" de navegador completo.
+    """
+    Versión mejorada basada en tu código original con técnicas anti-detección avanzadas
+    """
+    
+    # Crear scraper con configuración anti-detección mejorada
     with create_scraper(
-        # Hacemos que la librería se comporte como la última versión de Chrome en Windows
         browser={
             'browser': 'chrome',
             'platform': 'windows',
-            'mobile': False
-        }
+            'mobile': False,
+            'desktop': True  # Añadido
+        },
+        delay=random.uniform(1, 3),  # Delay aleatorio
+        debug=False,
+        interpreter='js2py'  # Motor más stealth
     ) as session:
         try:
-            # --- Añadimos cabeceras que un navegador real enviaría ---
+            # === DISFRAZ ULTRA-REALISTA (MEJORADO) ===
+            
+            # Versión de Chrome aleatoria y reciente
+            chrome_versions = ['120.0.6099.109', '120.0.6099.129', '120.0.6099.144', '119.0.6045.199']
+            chrome_version = random.choice(chrome_versions)
+            
+            # Headers mejorados con técnicas anti-detección
             session.headers.update({
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.9,es;q=0.8',
+                # Headers básicos mejorados
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+                'Accept-Language': 'en-US,en;q=0.9,es-ES;q=0.8,es;q=0.7',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Cache-Control': 'max-age=0',
+                'Upgrade-Insecure-Requests': '1',
+                
+                # Headers de seguridad modernos (CLAVE PARA FIRELOAD)
                 'Sec-Fetch-Dest': 'document',
                 'Sec-Fetch-Mode': 'navigate',
                 'Sec-Fetch-Site': 'none',
                 'Sec-Fetch-User': '?1',
-                'Upgrade-Insecure-Requests': '1'
+                
+                # Headers Chrome modernos (anti-detección)
+                'sec-ch-ua': f'"Not_A Brand";v="8", "Chromium";v="{chrome_version.split(".")[0]}", "Google Chrome";v="{chrome_version.split(".")[0]}"',
+                'sec-ch-ua-mobile': '?0',
+                'sec-ch-ua-platform': '"Windows"',
+                'sec-ch-ua-platform-version': '"15.0.0"',
+                
+                # Headers adicionales
+                'Connection': 'keep-alive',
+                'DNT': '1',
+                
+                # User-Agent ultra-realista
+                'User-Agent': f'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{chrome_version} Safari/537.36'
             })
             
-            print("FIRELOAD/FINAL_ATTEMPT: Obteniendo la página con el disfraz de navegador...")
-            response = session.get(url, timeout=20)
-
-            if response.status_code != 200:
-                raise DirectDownloadLinkException(f"Error al acceder. Código: {response.status_code}. El sitio puede estar bloqueando la petición.")
-
-            # --- LA BÚSQUEDA CLAVE ---
-            print("FIRELOAD/FINAL_ATTEMPT: Buscando el bloque de datos...")
-            match = search(r'(?s)window\.Fl\s*=\s*({.*?});', response.text)
+            # === COMPORTAMIENTO HUMANO SIMULADO ===
             
-            if not match:
-                # Si falla, esta es la prueba definitiva. Mostramos lo que vio el script.
+            print("FIRELOAD/ENHANCED: Simulando llegada desde Google...")
+            
+            # Establecer referrer orgánico desde Google
+            try:
+                # Visita rápida a Google para establecer cookies realistas
+                session.get("https://www.google.com", timeout=10)
+                filename = url.split('/')[-1].split('.')[0]
+                session.headers['Referer'] = f'https://www.google.com/search?q=fireload+{filename}'
+                print("FIRELOAD/ENHANCED: Referrer orgánico establecido")
+            except:
+                session.headers['Referer'] = 'https://www.google.com/'
+            
+            # Cookies realistas de tracking
+            timestamp = int(time.time())
+            session.cookies.set('_ga', f'GA1.2.{random.randint(1000000000, 9999999999)}.{timestamp}')
+            session.cookies.set('_gid', f'GA1.2.{random.randint(1000000000, 9999999999)}.{timestamp}')
+            session.cookies.set('_fbp', f'fb.1.{timestamp}.{random.randint(1000000000, 9999999999)}')
+            
+            # Delay humano antes de la solicitud principal
+            human_delay = random.uniform(2, 5)
+            print(f"FIRELOAD/ENHANCED: Pausa humana de {human_delay:.1f}s...")
+            time.sleep(human_delay)
+            
+            # === SOLICITUD PRINCIPAL CON REINTENTOS INTELIGENTES ===
+            
+            print("FIRELOAD/ENHANCED: Obteniendo la página con disfraz mejorado...")
+            
+            response = None
+            max_attempts = 3
+            
+            for attempt in range(max_attempts):
+                try:
+                    response = session.get(url, timeout=25)
+                    
+                    if response.status_code == 200:
+                        # Verificar que no sea una página señuelo
+                        if len(response.text) < 2000:
+                            print(f"FIRELOAD/ENHANCED: Intento {attempt + 1} - Página señuelo detectada")
+                            if attempt < max_attempts - 1:
+                                # Cambiar User-Agent y reintentar
+                                new_chrome = random.choice([v for v in chrome_versions if v != chrome_version])
+                                session.headers['User-Agent'] = session.headers['User-Agent'].replace(chrome_version, new_chrome)
+                                chrome_version = new_chrome
+                                time.sleep(random.uniform(5, 10))
+                                continue
+                        break
+                        
+                    elif response.status_code == 403:
+                        print(f"FIRELOAD/ENHANCED: Intento {attempt + 1} - Bloqueado (403)")
+                        if attempt < max_attempts - 1:
+                            # Estrategia más agresiva: cambiar todo el perfil
+                            new_chrome = random.choice([v for v in chrome_versions if v != chrome_version])
+                            session.headers.update({
+                                'User-Agent': f'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{new_chrome} Safari/537.36',
+                                'sec-ch-ua': f'"Not_A Brand";v="8", "Chromium";v="{new_chrome.split(".")[0]}", "Google Chrome";v="{new_chrome.split(".")[0]}"'
+                            })
+                            time.sleep(random.uniform(8, 15))
+                            
+                    elif response.status_code == 429:
+                        print(f"FIRELOAD/ENHANCED: Rate limit - Esperando...")
+                        time.sleep(random.uniform(15, 25))
+                        
+                except Exception as e:
+                    print(f"FIRELOAD/ENHANCED: Error en intento {attempt + 1}: {e}")
+                    if attempt < max_attempts - 1:
+                        time.sleep(random.uniform(5, 10))
+
+            if not response or response.status_code != 200:
+                raise DirectDownloadLinkException(f"Error después de {max_attempts} intentos. Código: {response.status_code if response else 'Sin respuesta'}")
+
+            # === DETECCIÓN DE PÁGINA SEÑUELO ===
+            
+            # Verificaciones múltiples para detectar engaño
+            is_decoy = False
+            decoy_indicators = [
+                len(response.text) < 3000,  # Página muy corta
+                'window.Fl' not in response.text,  # Sin datos de descarga
+                response.text.count('<script') < 3,  # Muy pocos scripts
+                'noindex,nofollow' in response.text and 'dlink' not in response.text  # Solo metadatos
+            ]
+            
+            if sum(decoy_indicators) >= 2:
+                is_decoy = True
+                print("FIRELOAD/ENHANCED: ⚠️  PÁGINA SEÑUELO DETECTADA")
+                
+                # Mostrar análisis de la página
                 html_preview = response.text[:1500].replace('\n', '\\n')
-                print(f"FIRELOAD/FINAL_ATTEMPT: --- INICIO DE PRUEBA HTML ---\n{html_preview}\n--- FIN DE PRUEBA HTML ---")
-                raise DirectDownloadLinkException(
-                    "No se pudo encontrar el bloque 'window.Fl'. Fireload está sirviendo una página diferente. Revisa la 'PRUEBA HTML' en los logs."
-                )
+                print(f"FIRELOAD/ENHANCED: HTML recibido:\n{html_preview}")
+                
+                # Intentar estrategia de recuperación
+                print("FIRELOAD/ENHANCED: Intentando estrategia de recuperación...")
+                
+                # Cambiar completamente el perfil del navegador
+                session.headers.update({
+                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'sec-ch-ua-platform': '"macOS"',
+                    'Accept-Language': 'en-GB,en;q=0.9'
+                })
+                
+                time.sleep(random.uniform(10, 15))
+                
+                # Segundo intento con perfil diferente
+                recovery_response = session.get(url, timeout=25)
+                if recovery_response.status_code == 200 and len(recovery_response.text) > 3000:
+                    response = recovery_response
+                    is_decoy = False
+                    print("FIRELOAD/ENHANCED: ✅ Recuperación exitosa!")
+
+            if is_decoy:
+                raise DirectDownloadLinkException("Fireload está sirviendo página señuelo. Posible detección de bot o IP bloqueada temporalmente.")
+
+            # === BÚSQUEDA MEJORADA DEL BLOQUE DE DATOS ===
             
-            json_data = loads(match.group(1))
-            intermediate_link = json_data.get("dlink")
+            print("FIRELOAD/ENHANCED: Buscando bloque de datos con patrones múltiples...")
+            
+            # Patrones expandidos (tu patrón original + alternativas)
+            search_patterns = [
+                r'(?s)window\.Fl\s*=\s*({.*?});',  # Tu patrón original
+                r'(?s)window\[\'Fl\'\]\s*=\s*({.*?});',
+                r'(?s)window\["Fl"\]\s*=\s*({.*?});',
+                r'(?s)var\s+Fl\s*=\s*({.*?});',
+                r'(?s)let\s+Fl\s*=\s*({.*?});',
+                r'(?s)const\s+Fl\s*=\s*({.*?});',
+                r'(?s)Fl\s*=\s*({.*?});',
+                # Patrones de emergencia para dlink directo
+                r'(?s)"dlink"\s*:\s*"([^"]+)"',
+                r'(?s)\'dlink\'\s*:\s*\'([^\']+)\'',
+            ]
+            
+            json_data = None
+            intermediate_link = None
+            
+            for i, pattern in enumerate(search_patterns):
+                match = search(pattern, response.text)
+                if match:
+                    print(f"FIRELOAD/ENHANCED: ✅ Patrón {i+1} funcionó!")
+                    
+                    try:
+                        if i < 7:  # Patrones de objeto completo
+                            json_data = loads(match.group(1))
+                            intermediate_link = json_data.get("dlink")
+                        else:  # Patrones de dlink directo
+                            intermediate_link = match.group(1)
+                        
+                        if intermediate_link:
+                            break
+                            
+                    except Exception as e:
+                        print(f"FIRELOAD/ENHANCED: Error procesando patrón {i+1}: {e}")
+                        continue
 
             if not intermediate_link:
-                raise DirectDownloadLinkException("Bloque de datos encontrado, pero sin el 'dlink' intermedio.")
+                # Tu mensaje de error original mejorado
+                html_preview = response.text[:2000].replace('\n', '\\n')
+                print(f"FIRELOAD/ENHANCED: --- ANÁLISIS COMPLETO DE HTML ---\n{html_preview}\n--- FIN ANÁLISIS ---")
+                
+                # Análisis adicional
+                script_count = response.text.count('<script')
+                if script_count == 0:
+                    error_detail = "Página sin JavaScript - definitivamente señuelo"
+                elif 'captcha' in response.text.lower():
+                    error_detail = "CAPTCHA detectado en la página"
+                elif 'blocked' in response.text.lower():
+                    error_detail = "Mensaje de bloqueo detectado"
+                else:
+                    error_detail = f"Estructura desconocida (scripts: {script_count})"
+                
+                raise DirectDownloadLinkException(f"No se pudo encontrar el bloque 'window.Fl'. {error_detail}. Revisa el análisis HTML en los logs.")
             
-            print(f"FIRELOAD/FINAL_ATTEMPT: Enlace intermedio encontrado: {intermediate_link}")
+            print(f"FIRELOAD/ENHANCED: ✅ Enlace intermedio encontrado: {intermediate_link}")
 
-            # --- LA CAPTURA DE LA REDIRECCIÓN ---
-            print("FIRELOAD/FINAL_ATTEMPT: Capturando la redirección final...")
-            final_response = session.get(intermediate_link, allow_redirects=False)
+            # === CAPTURA DE REDIRECCIÓN MEJORADA ===
+            
+            # Simular pausa humana antes del "clic"
+            click_delay = random.uniform(1, 3)
+            print(f"FIRELOAD/ENHANCED: Simulando clic humano (pausa {click_delay:.1f}s)...")
+            time.sleep(click_delay)
+            
+            # Headers para simular clic en descarga
+            session.headers.update({
+                'Referer': url,
+                'Sec-Fetch-Site': 'same-origin',
+                'Sec-Fetch-User': '?1'
+            })
+            
+            print("FIRELOAD/ENHANCED: Capturando la redirección final...")
+            final_response = session.get(intermediate_link, allow_redirects=False, timeout=20)
 
             if final_response.status_code in [301, 302, 307, 308]:
                 direct_link = final_response.headers.get('Location')
                 if direct_link:
-                    print(f"FIRELOAD/FINAL_ATTEMPT: ¡VICTORIA! Enlace final: {direct_link}")
+                    print(f"FIRELOAD/ENHANCED: 🎉 ¡VICTORIA TOTAL! Enlace final: {direct_link}")
                     return direct_link
+                else:
+                    raise DirectDownloadLinkException("Redirección sin header Location")
             
-            raise DirectDownloadLinkException("No se recibió la redirección esperada.")
+            elif final_response.status_code == 200:
+                # Verificar si es descarga directa
+                content_type = final_response.headers.get('content-type', '').lower()
+                if 'video' in content_type or 'octet-stream' in content_type:
+                    print(f"FIRELOAD/ENHANCED: 🎉 Descarga directa: {intermediate_link}")
+                    return intermediate_link
+            
+            raise DirectDownloadLinkException(f"Respuesta inesperada: {final_response.status_code}")
 
+        except DirectDownloadLinkException:
+            raise
         except Exception as e:
-            raise DirectDownloadLinkException(f"Error en el intento final: {type(e).__name__} - {e}")
+            error_message = f"Error crítico: {type(e).__name__} - {e}"
+            print(f"FIRELOAD/ENHANCED: {error_message}")
+            raise DirectDownloadLinkException(error_message)
 
+# Función de testing mejorada
+def test_fireload_enhanced():
+    """Prueba el método mejorado con diagnóstico avanzado"""
+    test_url = "https://www.fireload.com/9b0c659426249190/Dragon_Ball_(1986)_-_S00E01_-_El_Cuerpo_de_Bomberos.mkv"
+    
+    print("🚀 INICIANDO PRUEBA CON MÉTODO MEJORADO")
+    print("=" * 60)
+    
+    try:
+        start = time.time()
+        result = fireload(test_url)
+        end = time.time()
+        
+        print("=" * 60)
+        print("🎉 ¡ÉXITO COMPLETO!")
+        print(f"⏱️  Tiempo: {end-start:.2f}s")
+        print(f"🔗 Enlace: {result}")
+        print("=" * 60)
+        return result
+        
+    except Exception as e:
+        print("=" * 60)
+        print("❌ FALLÓ LA PRUEBA")
+        print(f"❌ Error: {e}")
+        
+        # Diagnóstico específico
+        if "señuelo" in str(e).lower():
+            print("🔍 DIAGNÓSTICO: Fireload detectó el bot y envió página falsa")
+            print("💡 SOLUCIÓN: Necesitamos técnicas más avanzadas o cambiar IP")
+        elif "captcha" in str(e).lower():
+            print("🔍 DIAGNÓSTICO: CAPTCHA activado")
+        elif "403" in str(e) or "blocked" in str(e).lower():
+            print("🔍 DIAGNÓSTICO: IP o User-Agent bloqueado")
+        else:
+            print("🔍 DIAGNÓSTICO: Error técnico o cambio en Fireload")
+        
+        print("=" * 60)
+        return None
+
+# Para probar:
+# result = test_fireload_enhanced()
 
 
 
