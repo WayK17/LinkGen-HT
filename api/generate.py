@@ -59,19 +59,22 @@ def fireload(url):
     """
     # Usamos asyncio.run para ejecutar nuestra función asíncrona de Playwright
     return asyncio.run(fireload_async(url))
-
 async def fireload_async(url):
     browserless_api_key = os.getenv('BROWSERLESS_API_KEY')
     if not browserless_api_key:
         raise DirectDownloadLinkException("ERROR: La API Key de BROWSERLESS no está configurada en Vercel.")
 
-    browserless_url = f'wss://chrome.browserless.io?token={browserless_api_key}'
+    # --- LA CORRECCIÓN MÁS IMPORTANTE ESTÁ AQUÍ ---
+    # Usamos la URL de producción correcta que nos indicó el error.
+    browserless_url = f'wss://chrome.browserless.io?token={browserless_api_key}&blockAds'
 
+    browser = None # Aseguramos que 'browser' exista fuera del try
     async with async_playwright() as p:
-        browser = None  # Definimos browser aquí para que esté disponible en el bloque finally
         try:
+            # Conectamos al navegador
             browser = await p.chromium.connect_over_cdp(browserless_url)
             page = await browser.new_page()
+
             
             print(f"FIRELOAD/PLAYWRIGHT: Navegando a {url}")
             await page.goto(url, timeout=60000, wait_until='domcontentloaded')
@@ -144,6 +147,7 @@ async def fireload_async(url):
             # Nos aseguramos de cerrar el navegador sin importar lo que pase
             if browser and browser.is_connected():
                 await browser.close()
+
 
 
 
