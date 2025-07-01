@@ -67,7 +67,7 @@ async def fireload_async(url):
         raise DirectDownloadLinkException("ERROR: La API Key de BROWSERLESS no está configurada en Vercel.")
 
     # Construir la URL de conexión a Browserless
-    browserless_url = f'wss://chrome.browserless.io?token={browserless_api_key}'
+    browserless_url = f'wss://chrome.browserless.io?token={browserless_api_key}&blockAds'
 
     async with async_playwright() as p:
         try:
