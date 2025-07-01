@@ -73,15 +73,18 @@ async def fireload_async(url):
     async with async_playwright() as p:
         try:
             browser = await p.chromium.connect_over_cdp(browserless_url)
-            page = await browser.new_page()
+            # Obtenemos el "contexto" del navegador, que maneja las pestañas
+            context = browser.contexts[0]
+            page = context.pages[0] if context.pages else await context.new_page()
             
             print(f"FIRELOAD/PLAYWRIGHT: Navegando a {url}")
             await page.goto(url, timeout=60000)
             print(f"FIRELOAD/PLAYWRIGHT: Página cargada: {await page.title()}")
 
-            # --- Lógica para carpetas (sin cambios) ---
+            # Lógica para carpetas (sin cambios)
             is_folder = "/d/" in url or "/f/" in url
             if is_folder:
+                # ... (la lógica de carpetas se mantiene igual)
                 print("FIRELOAD/PLAYWRIGHT: Carpeta detectada...")
                 await page.wait_for_selector('//tbody/tr/td/a', timeout=30000)
                 file_elements = await page.query_selector_all('//tbody/tr/td/a')
@@ -94,7 +97,7 @@ async def fireload_async(url):
                     details["contents"].append({"filename": filename, "url": file_url})
                 return details
 
-            # --- ESTRATEGIA FINAL: LA PACIENCIA DEL ROBOT ---
+            # --- ESTRATEGIA FINAL: EL VIGILANTE DE PESTAÑAS ---
             
             download_element_selector = "//a[contains(., 'Download File')]"
             
@@ -102,25 +105,33 @@ async def fireload_async(url):
             await page.wait_for_selector(download_element_selector, state='visible', timeout=25000)
             print("FIRELOAD/PLAYWRIGHT: Elemento encontrado.")
 
-            # Hacemos clic y no esperamos ningún evento, solo continuamos.
-            print("FIRELOAD/PLAYWRIGHT: Haciendo clic...")
-            await page.click(download_element_selector)
+            # Preparamos al vigilante para que atrape la nueva pestaña
+            async with context.expect_page(timeout=15000) as new_page_info:
+                print("FIRELOAD/PLAYWRIGHT: Haciendo clic y esperando que se abra una nueva pestaña...")
+                await page.click(download_element_selector)
             
-            # La espera paciente, para darle tiempo al JavaScript de Fireload de ejecutarse.
-            print("FIRELOAD/PLAYWRIGHT: Esperando pacientemente durante 10 segundos...")
-            await page.wait_for_timeout(10000)
+            # Obtenemos la nueva pestaña que ha sido atrapada
+            new_page = await new_page_info.value
+            await new_page.wait_for_load_state() # Esperamos a que la nueva pestaña cargue
             
-            # Después de la espera, la URL de la página debería haber cambiado.
-            final_link = page.url
-            print(f"FIRELOAD/PLAYWRIGHT: URL final después de la espera: {final_link}")
+            final_link = new_page.url
+            print(f"FIRELOAD/PLAYWRIGHT: ¡Nueva pestaña detectada! URL final: {final_link}")
 
-            # Verificamos que la URL haya cambiado y no sea la misma del principio.
-            if final_link and final_link != url:
+            # Verificamos que el enlace sea válido
+            if final_link and "fireload.com" not in final_link:
                 return final_link
             else:
-                raise DirectDownloadLinkException("La URL no cambió después de la espera. El sitio puede haber modificado su comportamiento.")
+                # Si la URL de la nueva pestaña no es la de descarga, intentamos leerla de la página
+                 await new_page.wait_for_timeout(5000)
+                 return new_page.url
+
 
         except Exception as e:
+            # Si el error es un Timeout esperando la nueva pestaña, lo indicamos claramente.
+            if "Timeout" in type(e).__name__ and "expect_page" in str(e):
+                 error_message = "El clic no abrió una nueva pestaña como se esperaba. Fireload ha cambiado su método de nuevo."
+                 raise DirectDownloadLinkException(error_message)
+            
             error_message = f"Error con Playwright: {type(e).__name__} - {e}"
             print(f"FIRELOAD/PLAYWRIGHT: {error_message}")
             raise DirectDownloadLinkException(error_message)
