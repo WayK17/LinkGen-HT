@@ -61,61 +61,89 @@ def fireload(url):
     return asyncio.run(fireload_async(url))
 
 async def fireload_async(url):
-    # Obtener la API Key desde las variables de entorno de Vercel
     browserless_api_key = os.getenv('BROWSERLESS_API_KEY')
     if not browserless_api_key:
         raise DirectDownloadLinkException("ERROR: La API Key de BROWSERLESS no está configurada en Vercel.")
 
-    # --- LA CORRECCIÓN DEFINITIVA ESTÁ AQUÍ ---
-    # Usamos la nueva URL de conexión que nos indicó el propio mensaje de error.
-    browserless_url = f'wss://production-sfo.browserless.io?token={browserless_api_key}'
+    browserless_url = f'wss://chrome.browserless.io?token={browserless_api_key}'
 
     async with async_playwright() as p:
+        browser = None  # Definimos browser aquí para que esté disponible en el bloque finally
         try:
             browser = await p.chromium.connect_over_cdp(browserless_url)
             page = await browser.new_page()
-
+            
             print(f"FIRELOAD/PLAYWRIGHT: Navegando a {url}")
-            await page.goto(url, timeout=60000)
+            await page.goto(url, timeout=60000, wait_until='domcontentloaded')
+
+            # --- NUEVO: MANEJO DE INTERRUPCIONES (Cookies, etc.) ---
+            # Intentamos hacer clic en cualquier botón de "Aceptar" que pueda existir.
+            # No nos preocupamos si no lo encuentra, continuará de todos modos.
+            cookie_selectors = [
+                "//button[contains(., 'Accept')]",
+                "//button[contains(., 'Agree')]",
+                "//button[contains(., 'Aceptar')]",
+                "//button[contains(., 'Consent')]"
+            ]
+            for selector in cookie_selectors:
+                try:
+                    print(f"FIRELOAD/PLAYWRIGHT: Buscando botón de cookie con selector: {selector}")
+                    await page.click(selector, timeout=5000) # Un timeout corto de 5 segundos
+                    print(f"FIRELOAD/PLAYWRIGHT: ¡Botón de cookie encontrado y clickeado!")
+                    await page.wait_for_timeout(1000) # Pequeña pausa después de hacer clic
+                    break # Si encontramos uno, no necesitamos buscar más
+                except:
+                    print(f"FIRELOAD/PLAYWRIGHT: No se encontró el botón de cookie.")
+                    pass
 
             is_folder = "/d/" in url or "/f/" in url
 
             if is_folder:
+                # La lógica de la carpeta permanece igual por ahora
                 print("FIRELOAD/PLAYWRIGHT: Detectada una carpeta.")
                 await page.wait_for_selector('//tbody/tr/td/a', timeout=30000)
                 file_elements = await page.query_selector_all('//tbody/tr/td/a')
-
+                
                 if not file_elements:
                     raise DirectDownloadLinkException("Carpeta detectada, pero no se encontraron archivos.")
-
+                
                 details = {"contents": [], "title": await page.title(), "total_size": 0}
                 for element in file_elements:
                     filename = await element.inner_text()
                     file_url = await element.get_attribute('href')
                     details["contents"].append({"filename": filename, "url": file_url})
-
-                await browser.close()
+                
                 return details
-
-            else:
+            
+            else: # Es un archivo individual
                 print("FIRELOAD/PLAYWRIGHT: Detectado un archivo individual.")
                 download_button_selector = 'a.btn-download, a#download-button, a[href*="cdn"]'
-                await page.wait_for_selector(download_button_selector, timeout=30000)
-                await page.click(download_button_selector)
-                await page.wait_for_timeout(3000)
-                download_button = await page.query_selector(download_button_selector)
-                direct_link = await download_button.get_attribute('href')
+                
+                try:
+                    await page.wait_for_selector(download_button_selector, timeout=30000)
+                    await page.click(download_button_selector)
+                    await page.wait_for_timeout(3000)
+                    download_button = await page.query_selector(download_button_selector)
+                    direct_link = await download_button.get_attribute('href')
 
-                if not direct_link:
-                    raise DirectDownloadLinkException("No se pudo extraer el enlace directo (href).")
+                    if not direct_link:
+                        raise DirectDownloadLinkException("No se pudo extraer el enlace directo (href).")
+                    
+                    return direct_link
+                
+                except Exception as e:
+                    # --- NUEVO: DEPURACIÓN AVANZADA ---
+                    # Si falla, tomamos una "foto" del HTML y la incluimos en el error.
+                    print("FIRELOAD/PLAYWRIGHT: No se encontró el botón de descarga. Capturando HTML para depuración.")
+                    page_content = await page.content()
+                    raise DirectDownloadLinkException(
+                        f"Timeout o error al buscar el botón. El sitio puede haber cambiado. Contenido de la página (primeros 1000 caracteres):\n\n{page_content[:1000]}"
+                    )
 
+        finally:
+            # Nos aseguramos de cerrar el navegador sin importar lo que pase
+            if browser and browser.is_connected():
                 await browser.close()
-                return direct_link
-
-        except Exception as e:
-            if 'browser' in locals() and browser.is_connected():
-                await browser.close()
-            raise DirectDownloadLinkException(f"Error con Playwright/Browserless: {type(e).__name__} - {e}")
 
 
 
