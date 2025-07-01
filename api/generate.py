@@ -66,7 +66,8 @@ async def fireload_async(url):
     if not browserless_api_key:
         raise DirectDownloadLinkException("ERROR: La API Key de BROWSERLESS no está configurada en Vercel.")
 
-    # Construir la URL de conexión a Browserless
+    # --- LA LÍNEA CORREGIDA ESTÁ AQUÍ ---
+    # Usamos la nueva URL de conexión que nos indicó el error.
     browserless_url = f'wss://chrome.browserless.io?token={browserless_api_key}&blockAds'
 
     async with async_playwright() as p:
@@ -75,68 +76,45 @@ async def fireload_async(url):
             page = await browser.new_page()
             
             print(f"FIRELOAD/PLAYWRIGHT: Navegando a {url}")
-            await page.goto(url, timeout=60000) # Timeout de 60 segundos
+            await page.goto(url, timeout=60000)
 
-            # --- LÓGICA PARA DETECTAR SI ES CARPETA O ARCHIVO ---
-            
-            # Asumimos que si la URL contiene "/d/" o "/f/" es una carpeta
-            # Puedes ajustar esto si encuentras un mejor patrón
             is_folder = "/d/" in url or "/f/" in url
 
             if is_folder:
-                print("FIRELOAD/PLAYWRIGHT: Detectada una carpeta. Extrayendo enlaces de archivos...")
-                
-                # Esperamos a que la lista de archivos esté visible
+                print("FIRELOAD/PLAYWRIGHT: Detectada una carpeta.")
                 await page.wait_for_selector('//tbody/tr/td/a', timeout=30000)
-                
-                # Extraemos todos los enlaces de la tabla
                 file_elements = await page.query_selector_all('//tbody/tr/td/a')
                 
                 if not file_elements:
-                    raise DirectDownloadLinkException("Carpeta detectada, pero no se encontraron archivos en ella.")
+                    raise DirectDownloadLinkException("Carpeta detectada, pero no se encontraron archivos.")
                 
                 details = {"contents": [], "title": await page.title(), "total_size": 0}
-                
                 for element in file_elements:
                     filename = await element.inner_text()
                     file_url = await element.get_attribute('href')
-                    
-                    # Para carpetas, devolvemos el enlace normal. El usuario deberá generar el directo.
                     details["contents"].append({"filename": filename, "url": file_url})
                 
                 await browser.close()
                 return details
             
-            else: # Es un archivo individual
-                print("FIRELOAD/PLAYWRIGHT: Detectado un archivo individual. Buscando el botón de descarga...")
-
-                # Selector del botón de descarga principal. Puede que necesite ajustes.
+            else:
+                print("FIRELOAD/PLAYWRIGHT: Detectado un archivo individual.")
                 download_button_selector = 'a.btn-download, a#download-button, a[href*="cdn"]'
-                
                 await page.wait_for_selector(download_button_selector, timeout=30000)
-                
-                # Hacemos clic en el botón para asegurarnos de que se genere el enlace final
                 await page.click(download_button_selector)
-
-                # Esperamos un momento para que cualquier redirección o JS se complete
                 await page.wait_for_timeout(3000)
-
-                # Volvemos a obtener el elemento para asegurarnos de que tenemos el 'href' final
                 download_button = await page.query_selector(download_button_selector)
                 direct_link = await download_button.get_attribute('href')
 
                 if not direct_link:
-                    raise DirectDownloadLinkException("Se encontró el botón de descarga, pero no se pudo extraer el enlace directo (href).")
+                    raise DirectDownloadLinkException("No se pudo extraer el enlace directo (href).")
                 
-                print(f"FIRELOAD/PLAYWRIGHT: Enlace directo extraído: {direct_link}")
                 await browser.close()
                 return direct_link
 
         except Exception as e:
-            # Si el navegador ya se inicializó, lo cerramos
             if 'browser' in locals() and browser.is_connected():
                 await browser.close()
-            # Lanzamos una excepción que nuestro handler pueda entender
             raise DirectDownloadLinkException(f"Error con Playwright/Browserless: {type(e).__name__} - {e}")
 
 
