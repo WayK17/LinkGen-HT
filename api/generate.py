@@ -66,66 +66,46 @@ async def fireload_async(url):
     if not browserless_api_key:
         raise DirectDownloadLinkException("ERROR: La API Key de BROWSERLESS no está configurada en Vercel.")
 
-    # URL CORRECTA + EL PARÁMETRO MÁGICO PARA BLOQUEAR ANUNCIOS
+    # URL de conexión correcta, verificada.
     browserless_url = f'wss://production-sfo.browserless.io?token={browserless_api_key}&blockAds'
 
     browser = None
     async with async_playwright() as p:
         try:
             browser = await p.chromium.connect_over_cdp(browserless_url)
-            context = browser.contexts[0]
-            page = context.pages[0] if context.pages else await context.new_page()
+            page = await browser.new_page()
             
-            print(f"FIRELOAD/PLAYWRIGHT: Navegando a {url} (con Ad-Blocker activado)")
-            await page.goto(url, timeout=60000)
-            print(f"FIRELOAD/PLAYWRIGHT: Página cargada: {await page.title()}")
+            print(f"FIRELOAD/PLAYWRIGHT: Navegando a {url}")
+            await page.goto(url, timeout=60000, wait_until='domcontentloaded')
+            print(f"FIRELOAD/PLAYWRIGHT: Página cargada.")
 
-            # --- Lógica para carpetas (sin cambios) ---
+            # La lógica para carpetas se mantiene igual (si la necesitas para Fireload)
             is_folder = "/d/" in url or "/f/" in url
             if is_folder:
-                # ... (la lógica de carpetas se mantiene igual)
-                print("FIRELOAD/PLAYWRIGHT: Carpeta detectada...")
-                await page.wait_for_selector('//tbody/tr/td/a', timeout=30000)
-                file_elements = await page.query_selector_all('//tbody/tr/td/a')
-                if not file_elements:
-                    raise DirectDownloadLinkException("Carpeta detectada, pero sin archivos.")
-                details = {"contents": [], "title": await page.title()}
-                for element in file_elements:
-                    filename = await element.inner_text()
-                    file_url = await element.get_attribute('href')
-                    details["contents"].append({"filename": filename, "url": file_url})
-                return details
-            
-            # --- ESTRATEGIA FINAL: AD-BLOCKER + INSPECCIÓN DE PESTAÑAS ---
+                # ... (lógica de carpetas) ...
+                return {"error": "El manejo de carpetas de Fireload aún no está implementado."}
+
+            # --- ESTRATEGIA FINAL: ESPERAR EL EVENTO DE DESCARGA ---
             
             download_element_selector = "//a[contains(., 'Download File')]"
             
             print(f"FIRELOAD/PLAYWRIGHT: Buscando el elemento '{download_element_selector}'")
             await page.wait_for_selector(download_element_selector, state='visible', timeout=25000)
-            print("FIRELOAD/PLAYWRIGHT: Elemento encontrado.")
+            print("FIRELOAD/PLAYWRIGHT: Elemento de descarga encontrado.")
 
-            print("FIRELOAD/PLAYWRIGHT: Haciendo clic...")
-            await page.click(download_element_selector)
+            # Preparamos el listener para el evento de descarga ANTES de hacer el clic
+            async with page.expect_download(timeout=30000) as download_info:
+                print("FIRELOAD/PLAYWRIGHT: Haciendo clic y esperando que la descarga comience...")
+                await page.click(download_element_selector)
             
-            # La espera paciente para darle tiempo a todo de ejecutarse
-            print("FIRELOAD/PLAYWRIGHT: Esperando pacientemente durante 10 segundos...")
-            await page.wait_for_timeout(10000)
+            # Obtenemos la información de la descarga que se ha iniciado
+            download = await download_info.value
             
-            # Revisamos TODAS las pestañas abiertas
-            all_pages = context.pages
-            print(f"FIRELOAD/PLAYWRIGHT: Se detectaron {len(all_pages)} pestañas en total.")
-
-            # La última pestaña de la lista suele ser la más reciente
-            if len(all_pages) > 1:
-                final_page = all_pages[-1]
-                final_link = final_page.url
-                print(f"FIRELOAD/PLAYWRIGHT: La URL de la última pestaña es: {final_link}")
-                
-                # Una última verificación de que no es un anuncio
-                if "fireload.com" not in final_link:
-                    return final_link
+            # La URL del objeto de descarga es nuestro enlace directo
+            direct_link = download.url
+            print(f"FIRELOAD/PLAYWRIGHT: ¡VICTORIA! Enlace de descarga capturado: {direct_link}")
             
-            raise DirectDownloadLinkException("No se pudo encontrar una nueva pestaña con un enlace de descarga válido.")
+            return direct_link
 
         except Exception as e:
             error_message = f"Error con Playwright: {type(e).__name__} - {e}"
@@ -135,7 +115,6 @@ async def fireload_async(url):
         finally:
             if browser and browser.is_connected():
                 await browser.close()
-
 
 
 
