@@ -2,3 +2,4 @@ requests
 cloudscraper
 lxml
 urllib3
+playwright-python
