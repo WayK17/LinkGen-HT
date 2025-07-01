@@ -78,10 +78,9 @@ async def fireload_async(url):
             print(f"FIRELOAD/PLAYWRIGHT: Navegando a {url}")
             await page.goto(url, timeout=60000, wait_until='domcontentloaded')
 
-            # Lógica para carpetas (sin cambios)
+            # --- LÓGICA PARA CARPETAS (SIN CAMBIOS) ---
             is_folder = "/d/" in url or "/f/" in url
             if is_folder:
-                # ... (la lógica de carpetas se mantiene igual)
                 print("FIRELOAD/PLAYWRIGHT: Carpeta detectada...")
                 await page.wait_for_selector('//tbody/tr/td/a', timeout=30000)
                 file_elements = await page.query_selector_all('//tbody/tr/td/a')
@@ -94,57 +93,33 @@ async def fireload_async(url):
                     details["contents"].append({"filename": filename, "url": file_url})
                 return details
 
-            # --- MODO DETECTIVE ACTIVADO ---
+            # --- ESTRATEGIA FINAL BASADA EN TU INVESTIGACIÓN ---
             
             download_element_selector = "//a[contains(., 'Download File')]"
             
-            print(f"FIRELOAD/DETECTIVE: Buscando el elemento '{download_element_selector}'")
+            print(f"FIRELOAD/PLAYWRIGHT: Esperando el elemento de descarga: '{download_element_selector}'")
             await page.wait_for_selector(download_element_selector, state='visible', timeout=25000)
-            print("FIRELOAD/DETECTIVE: Elemento encontrado.")
+            print("FIRELOAD/PLAYWRIGHT: Elemento de descarga encontrado.")
 
-            requests_log = []
-            page.on("request", lambda request: requests_log.append(request.url))
-
-            print("FIRELOAD/DETECTIVE: Haciendo clic...")
-            await page.click(download_element_selector)
+            # Preparamos el "espía" para la redirección
+            async with page.expect_response("**/download_token/**") as response_info:
+                print("FIRELOAD/PLAYWRIGHT: Haciendo clic y esperando la respuesta de redirección...")
+                await page.click(download_element_selector)
             
-            print("FIRELOAD/DETECTIVE: Esperando pacientemente durante 10 segundos...")
-            await page.wait_for_timeout(10000)
+            # Obtenemos la respuesta que hemos interceptado
+            response = await response_info.value
             
-            print("FIRELOAD/DETECTIVE: ¡Tiempo de espera terminado! Iniciando interrogatorio...")
-            
-            try:
-                final_button_selector = "a#download-button"
-                final_link = await page.get_attribute(final_button_selector, 'href', timeout=1000)
-                if final_link:
-                    print(f"FIRELOAD/DETECTIVE: ¡Éxito! Enlace encontrado después de la espera: {final_link}")
-                    return final_link
-            except:
-                pass
+            # El enlace final está en la cabecera 'Location' de la respuesta de redirección
+            direct_link = response.headers.get('location')
 
-            print("FIRELOAD/DETECTIVE: Revisando peticiones de red...")
-            for req_url in requests_log:
-                if "download_token" in req_url:
-                    print(f"FIRELOAD/DETECTIVE: ¡PISTA ENCONTRADA EN RED! URL con 'download_token': {req_url}")
-                    return req_url
-
-            print("FIRELOAD/DETECTIVE: No se encontró un enlace claro. Recopilando pruebas finales...")
-            
-            # --- CORRECCIÓN DE LA CAPTURA DE PANTALLA ---
-            # Tomamos la screenshot como bytes
-            screenshot_bytes = await page.screenshot(full_page=True)
-            # La convertimos a base64 para poder imprimirla en los logs
-            screenshot_b64 = base64.b64encode(screenshot_bytes).decode('utf-8')
-            
-            print(f"FIRELOAD/DETECTIVE: --- PRUEBA A (SCREENSHOT) ---\n{screenshot_b64}\n--- FIN PRUEBA A ---")
-
-            final_html = await page.content()
-            print(f"FIRELOAD/DETECTIVE: --- PRUEBA B (HTML FINAL) ---\n{final_html[:2000]}\n--- FIN PRUEBA B ---")
-
-            raise DirectDownloadLinkException("Modo Detective finalizado. Revisa los logs para ver la screenshot y el HTML.")
+            if direct_link:
+                print(f"FIRELOAD/PLAYWRIGHT: ¡Redirección capturada! Enlace final: {direct_link}")
+                return direct_link
+            else:
+                raise DirectDownloadLinkException("Se interceptó la respuesta, pero no contenía la cabecera 'Location' con el enlace final.")
 
         except Exception as e:
-            error_message = f"Error en Modo Detective: {type(e).__name__} - {e}"
+            error_message = f"Error con Playwright: {type(e).__name__} - {e}"
             print(f"FIRELOAD/PLAYWRIGHT: {error_message}")
             raise DirectDownloadLinkException(error_message)
 
