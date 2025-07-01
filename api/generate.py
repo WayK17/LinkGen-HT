@@ -66,15 +66,15 @@ async def fireload_async(url):
     if not browserless_api_key:
         raise DirectDownloadLinkException("ERROR: La API Key de BROWSERLESS no está configurada en Vercel.")
 
-    # --- LA LÍNEA CORREGIDA ESTÁ AQUÍ ---
-    # Usamos la nueva URL de conexión que nos indicó el error.
-    browserless_url = f'wss://chrome.browserless.io?token={browserless_api_key}&blockAds'
+    # --- LA CORRECCIÓN DEFINITIVA ESTÁ AQUÍ ---
+    # Usamos la nueva URL de conexión que nos indicó el propio mensaje de error.
+    browserless_url = f'wss://production-sfo.browserless.io?token={browserless_api_key}'
 
     async with async_playwright() as p:
         try:
             browser = await p.chromium.connect_over_cdp(browserless_url)
             page = await browser.new_page()
-            
+
             print(f"FIRELOAD/PLAYWRIGHT: Navegando a {url}")
             await page.goto(url, timeout=60000)
 
@@ -84,19 +84,19 @@ async def fireload_async(url):
                 print("FIRELOAD/PLAYWRIGHT: Detectada una carpeta.")
                 await page.wait_for_selector('//tbody/tr/td/a', timeout=30000)
                 file_elements = await page.query_selector_all('//tbody/tr/td/a')
-                
+
                 if not file_elements:
                     raise DirectDownloadLinkException("Carpeta detectada, pero no se encontraron archivos.")
-                
+
                 details = {"contents": [], "title": await page.title(), "total_size": 0}
                 for element in file_elements:
                     filename = await element.inner_text()
                     file_url = await element.get_attribute('href')
                     details["contents"].append({"filename": filename, "url": file_url})
-                
+
                 await browser.close()
                 return details
-            
+
             else:
                 print("FIRELOAD/PLAYWRIGHT: Detectado un archivo individual.")
                 download_button_selector = 'a.btn-download, a#download-button, a[href*="cdn"]'
@@ -108,7 +108,7 @@ async def fireload_async(url):
 
                 if not direct_link:
                     raise DirectDownloadLinkException("No se pudo extraer el enlace directo (href).")
-                
+
                 await browser.close()
                 return direct_link
 
@@ -116,6 +116,7 @@ async def fireload_async(url):
             if 'browser' in locals() and browser.is_connected():
                 await browser.close()
             raise DirectDownloadLinkException(f"Error con Playwright/Browserless: {type(e).__name__} - {e}")
+
 
 
 def get_captcha_token(session, params):
