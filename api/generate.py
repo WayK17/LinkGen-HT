@@ -76,9 +76,10 @@ async def fireload_async(url):
             page = await browser.new_page()
             
             print(f"FIRELOAD/PLAYWRIGHT: Navegando a {url}")
-            await page.goto(url, timeout=60000, wait_until='domcontentloaded')
+            await page.goto(url, timeout=60000)
+            print(f"FIRELOAD/PLAYWRIGHT: Página cargada: {await page.title()}")
 
-            # --- LÓGICA PARA CARPETAS (SIN CAMBIOS) ---
+            # --- Lógica para carpetas (sin cambios) ---
             is_folder = "/d/" in url or "/f/" in url
             if is_folder:
                 print("FIRELOAD/PLAYWRIGHT: Carpeta detectada...")
@@ -93,30 +94,31 @@ async def fireload_async(url):
                     details["contents"].append({"filename": filename, "url": file_url})
                 return details
 
-            # --- ESTRATEGIA FINAL BASADA EN TU INVESTIGACIÓN ---
+            # --- ESTRATEGIA FINAL: LA PACIENCIA DEL ROBOT ---
             
             download_element_selector = "//a[contains(., 'Download File')]"
             
-            print(f"FIRELOAD/PLAYWRIGHT: Esperando el elemento de descarga: '{download_element_selector}'")
+            print(f"FIRELOAD/PLAYWRIGHT: Buscando el elemento '{download_element_selector}'")
             await page.wait_for_selector(download_element_selector, state='visible', timeout=25000)
-            print("FIRELOAD/PLAYWRIGHT: Elemento de descarga encontrado.")
+            print("FIRELOAD/PLAYWRIGHT: Elemento encontrado.")
 
-            # Preparamos el "espía" para la redirección
-            async with page.expect_response("**/download_token/**") as response_info:
-                print("FIRELOAD/PLAYWRIGHT: Haciendo clic y esperando la respuesta de redirección...")
-                await page.click(download_element_selector)
+            # Hacemos clic y no esperamos ningún evento, solo continuamos.
+            print("FIRELOAD/PLAYWRIGHT: Haciendo clic...")
+            await page.click(download_element_selector)
             
-            # Obtenemos la respuesta que hemos interceptado
-            response = await response_info.value
+            # La espera paciente, para darle tiempo al JavaScript de Fireload de ejecutarse.
+            print("FIRELOAD/PLAYWRIGHT: Esperando pacientemente durante 10 segundos...")
+            await page.wait_for_timeout(10000)
             
-            # El enlace final está en la cabecera 'Location' de la respuesta de redirección
-            direct_link = response.headers.get('location')
+            # Después de la espera, la URL de la página debería haber cambiado.
+            final_link = page.url
+            print(f"FIRELOAD/PLAYWRIGHT: URL final después de la espera: {final_link}")
 
-            if direct_link:
-                print(f"FIRELOAD/PLAYWRIGHT: ¡Redirección capturada! Enlace final: {direct_link}")
-                return direct_link
+            # Verificamos que la URL haya cambiado y no sea la misma del principio.
+            if final_link and final_link != url:
+                return final_link
             else:
-                raise DirectDownloadLinkException("Se interceptó la respuesta, pero no contenía la cabecera 'Location' con el enlace final.")
+                raise DirectDownloadLinkException("La URL no cambió después de la espera. El sitio puede haber modificado su comportamiento.")
 
         except Exception as e:
             error_message = f"Error con Playwright: {type(e).__name__} - {e}"
