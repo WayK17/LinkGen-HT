@@ -53,22 +53,44 @@ def is_share_link(link: str):
 #  INICIO DEL CÓDIGO COMPLETO DE SCRAPERS
 # ===============================================================
 def fireload(url):
-    # Usamos la herramienta ligera que es menos detectable
-    with create_scraper() as session:
+    # Esta es la versión final, con un "disfraz" de navegador completo.
+    with create_scraper(
+        # Hacemos que la librería se comporte como la última versión de Chrome en Windows
+        browser={
+            'browser': 'chrome',
+            'platform': 'windows',
+            'mobile': False
+        }
+    ) as session:
         try:
-            # --- Paso 1: Obtenemos el HTML inicial ---
-            print("FIRELOAD/SIMPLE: Obteniendo la página inicial...")
-            initial_response = session.get(url)
-            if initial_response.status_code != 200:
-                raise DirectDownloadLinkException(f"Error al acceder a la página. Código: {initial_response.status_code}")
+            # --- Añadimos cabeceras que un navegador real enviaría ---
+            session.headers.update({
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9,es;q=0.8',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none',
+                'Sec-Fetch-User': '?1',
+                'Upgrade-Insecure-Requests': '1'
+            })
+            
+            print("FIRELOAD/FINAL_ATTEMPT: Obteniendo la página con el disfraz de navegador...")
+            response = session.get(url, timeout=20)
 
-            # --- Paso 2: Extraemos el enlace intermedio del script ---
-            print("FIRELOAD/SIMPLE: Buscando el enlace intermedio en el script...")
-            # Usamos (?s) para que el punto "." coincida también con saltos de línea.
-            match = search(r'(?s)window\.Fl\s*=\s*({.*?});', initial_response.text)
+            if response.status_code != 200:
+                raise DirectDownloadLinkException(f"Error al acceder. Código: {response.status_code}. El sitio puede estar bloqueando la petición.")
+
+            # --- LA BÚSQUEDA CLAVE ---
+            print("FIRELOAD/FINAL_ATTEMPT: Buscando el bloque de datos...")
+            match = search(r'(?s)window\.Fl\s*=\s*({.*?});', response.text)
             
             if not match:
-                raise DirectDownloadLinkException("No se pudo encontrar el bloque de datos 'window.Fl' en la página.")
+                # Si falla, esta es la prueba definitiva. Mostramos lo que vio el script.
+                html_preview = response.text[:1500].replace('\n', '\\n')
+                print(f"FIRELOAD/FINAL_ATTEMPT: --- INICIO DE PRUEBA HTML ---\n{html_preview}\n--- FIN DE PRUEBA HTML ---")
+                raise DirectDownloadLinkException(
+                    "No se pudo encontrar el bloque 'window.Fl'. Fireload está sirviendo una página diferente. Revisa la 'PRUEBA HTML' en los logs."
+                )
             
             json_data = loads(match.group(1))
             intermediate_link = json_data.get("dlink")
@@ -76,26 +98,24 @@ def fireload(url):
             if not intermediate_link:
                 raise DirectDownloadLinkException("Bloque de datos encontrado, pero sin el 'dlink' intermedio.")
             
-            print(f"FIRELOAD/SIMPLE: Enlace intermedio encontrado: {intermediate_link}")
+            print(f"FIRELOAD/FINAL_ATTEMPT: Enlace intermedio encontrado: {intermediate_link}")
 
-            # --- Paso 3: Visitamos el enlace intermedio y CAPTURAMOS la redirección ---
-            print("FIRELOAD/SIMPLE: Visitando el enlace intermedio para capturar la redirección...")
+            # --- LA CAPTURA DE LA REDIRECCIÓN ---
+            print("FIRELOAD/FINAL_ATTEMPT: Capturando la redirección final...")
             final_response = session.get(intermediate_link, allow_redirects=False)
 
-            # Esperamos una respuesta de redirección (3xx)
             if final_response.status_code in [301, 302, 307, 308]:
-                # ¡El enlace final está en la cabecera 'Location'!
                 direct_link = final_response.headers.get('Location')
                 if direct_link:
-                    print(f"FIRELOAD/SIMPLE: ¡VICTORIA! Redirección capturada. Enlace final: {direct_link}")
+                    print(f"FIRELOAD/FINAL_ATTEMPT: ¡VICTORIA! Enlace final: {direct_link}")
                     return direct_link
             
-            # Si no hubo redirección, algo salió mal.
-            print(f"FIRELOAD/SIMPLE: Fracaso. No se recibió la redirección esperada. Código: {final_response.status_code}")
-            raise DirectDownloadLinkException("No se recibió la redirección esperada desde el enlace intermedio.")
+            raise DirectDownloadLinkException("No se recibió la redirección esperada.")
 
         except Exception as e:
-            raise DirectDownloadLinkException(f"Error procesando Fireload: {type(e).__name__} - {e}")
+            raise DirectDownloadLinkException(f"Error en el intento final: {type(e).__name__} - {e}")
+
+
 
 
 
