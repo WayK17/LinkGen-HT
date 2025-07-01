@@ -76,11 +76,11 @@ async def fireload_async(url):
             
             print(f"FIRELOAD/PLAYWRIGHT: Navegando a {url}")
             await page.goto(url, timeout=60000, wait_until='domcontentloaded')
-            print(f"FIRELOAD/PLAYWRIGHT: Página cargada: {await page.title()}")
 
-            # --- Lógica de Carpetas (sin cambios) ---
+            # Lógica para carpetas (sin cambios)
             is_folder = "/d/" in url or "/f/" in url
             if is_folder:
+                # ... (la lógica de carpetas se mantiene igual)
                 print("FIRELOAD/PLAYWRIGHT: Carpeta detectada...")
                 await page.wait_for_selector('//tbody/tr/td/a', timeout=30000)
                 file_elements = await page.query_selector_all('//tbody/tr/td/a')
@@ -93,56 +93,67 @@ async def fireload_async(url):
                     details["contents"].append({"filename": filename, "url": file_url})
                 return details
 
-            # --- ESTRATEGIA FINAL: "EL ESPÍA PACIENTE" ---
+            # --- MODO DETECTIVE ACTIVADO ---
             
             download_element_selector = "//a[contains(., 'Download File')]"
             
-            print(f"FIRELOAD/PLAYWRIGHT: Buscando el elemento '{download_element_selector}'")
+            print(f"FIRELOAD/DETECTIVE: Buscando el elemento '{download_element_selector}'")
             await page.wait_for_selector(download_element_selector, state='visible', timeout=25000)
-            print("FIRELOAD/PLAYWRIGHT: Elemento encontrado.")
+            print("FIRELOAD/DETECTIVE: Elemento encontrado.")
 
-            # Preparamos nuestra "variable espía" para guardar el enlace
-            final_link = None
-
-            # Definimos la función del espía
-            def spy(request):
-                nonlocal final_link
-                # Si la petición va a un servidor de descarga y aún no hemos capturado nada...
-                if "fireload.com/download_token/" in request.url and final_link is None:
-                    print(f"FIRELOAD/PLAYWRIGHT: ¡ESPÍA HA CAPTURADO UN ENLACE!: {request.url}")
-                    final_link = request.url
-
-            # Activamos el espía
-            page.on("request", spy)
+            # Preparamos al espía de red
+            requests_log = []
+            page.on("request", lambda request: requests_log.append(request.url))
 
             # Hacemos clic
-            print("FIRELOAD/PLAYWRIGHT: Haciendo clic y esperando pacientemente...")
+            print("FIRELOAD/DETECTIVE: Haciendo clic...")
             await page.click(download_element_selector)
             
-            # Esperamos hasta 15 segundos a que el espía capture algo
-            start_time = asyncio.get_event_loop().time()
-            while final_link is None and (asyncio.get_event_loop().time() - start_time) < 15:
-                await asyncio.sleep(0.1)
+            # La espera paciente
+            print("FIRELOAD/DETECTIVE: Esperando pacientemente durante 10 segundos...")
+            await page.wait_for_timeout(10000)
+            
+            # --- INTERROGATORIO ---
+            print("FIRELOAD/DETECTIVE: ¡Tiempo de espera terminado! Iniciando interrogatorio...")
+            
+            # 1. Intentar encontrar el enlace de nuevo
+            try:
+                final_button_selector = "a#download-button" # El botón que debería haber aparecido
+                final_link = await page.get_attribute(final_button_selector, 'href', timeout=1000)
+                if final_link:
+                    print(f"FIRELOAD/DETECTIVE: ¡Éxito! Enlace encontrado después de la espera: {final_link}")
+                    return final_link
+            except:
+                pass # Si no lo encuentra, no es un error, seguimos investigando
 
-            # Desactivamos el espía
-            page.remove_listener("request", spy)
+            # 2. Si no, revisamos el log de peticiones de red
+            print("FIRELOAD/DETECTIVE: El enlace no apareció directamente. Revisando peticiones de red...")
+            for req_url in requests_log:
+                if "download_token" in req_url:
+                    print(f"FIRELOAD/DETECTIVE: ¡PISTA ENCONTRADA EN RED! URL con 'download_token': {req_url}")
+                    return req_url
 
-            if final_link:
-                print(f"FIRELOAD/PLAYWRIGHT: ¡ÉXITO TOTAL! Enlace final: {final_link}")
-                return final_link
-            else:
-                print("FIRELOAD/PLAYWRIGHT: El tiempo de espera terminó y el espía no capturó ningún enlace de descarga válido.")
-                raise DirectDownloadLinkException("No se pudo interceptar el enlace de descarga después del clic.")
+            # 3. Si aún no hay nada, tomamos las pruebas
+            print("FIRELOAD/DETECTIVE: No se encontró un enlace claro. Recopilando pruebas finales...")
+            
+            # Tomamos una screenshot y la imprimimos en base64 para verla en los logs
+            screenshot_b64 = await page.screenshot(full_page=True, encoding="base64")
+            print(f"FIRELOAD/DETECTIVE: --- PRUEBA A (SCREENSHOT) ---\n{screenshot_b64}\n--- FIN PRUEBA A ---")
+
+            # Obtenemos el HTML final
+            final_html = await page.content()
+            print(f"FIRELOAD/DETECTIVE: --- PRUEBA B (HTML FINAL) ---\n{final_html[:2000]}\n--- FIN PRUEBA B ---")
+
+            raise DirectDownloadLinkException("Modo Detective finalizado. Revisa los logs para ver la screenshot y el HTML.")
 
         except Exception as e:
-            error_message = f"Error con Playwright: {type(e).__name__} - {e}"
+            error_message = f"Error en Modo Detective: {type(e).__name__} - {e}"
             print(f"FIRELOAD/PLAYWRIGHT: {error_message}")
             raise DirectDownloadLinkException(error_message)
 
         finally:
             if browser and browser.is_connected():
                 await browser.close()
-
 
 
 
