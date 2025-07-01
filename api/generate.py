@@ -65,7 +65,7 @@ async def fireload_async(url):
     if not browserless_api_key:
         raise DirectDownloadLinkException("ERROR: La API Key de BROWSERLESS no está configurada en Vercel.")
 
-    # Usamos la URL de conexión correcta.
+    # 1. LA URL DE CONEXIÓN DEFINITIVAMENTE CORRECTA
     browserless_url = f'wss://production-sfo.browserless.io?token={browserless_api_key}'
 
     browser = None
@@ -78,52 +78,46 @@ async def fireload_async(url):
             await page.goto(url, timeout=60000, wait_until='domcontentloaded')
             print(f"FIRELOAD/PLAYWRIGHT: Página cargada: {await page.title()}")
 
-            # Detectamos si es una carpeta o un archivo
+            # 2. LÓGICA COMPLETA PARA CARPETAS Y ARCHIVOS
             is_folder = "/d/" in url or "/f/" in url
 
             if is_folder:
-                # La lógica para carpetas permanece igual
-                print("FIRELOAD/PLAYWRIGHT: Carpeta detectada.")
+                print("FIRELOAD/PLAYWRIGHT: Carpeta detectada. Extrayendo enlaces...")
                 await page.wait_for_selector('//tbody/tr/td/a', timeout=30000)
                 file_elements = await page.query_selector_all('//tbody/tr/td/a')
+                
                 if not file_elements:
-                    raise DirectDownloadLinkException("Carpeta detectada, pero no se encontraron archivos.")
-                details = {"contents": [], "title": await page.title()}
+                    raise DirectDownloadLinkException("Carpeta detectada, pero no se encontraron archivos en ella.")
+                
+                details = {"contents": [], "title": await page.title(), "total_size": 0}
+                
                 for element in file_elements:
                     filename = await element.inner_text()
                     file_url = await element.get_attribute('href')
                     details["contents"].append({"filename": filename, "url": file_url})
+                
                 return details
             
-            else: # Archivo individual
+            else: # Es un archivo individual
                 print("FIRELOAD/PLAYWRIGHT: Archivo individual detectado.")
                 
-                # --- NUEVA ESTRATEGIA DE DOS PASOS ---
+                # 3. ESTRATEGIA DE SCRAPING PROFESIONAL
+                download_element_selector = "//a[contains(., 'Download File')]"
+                
+                print(f"FIRELOAD/PLAYWRIGHT: Esperando el elemento de descarga: '{download_element_selector}'")
+                await page.wait_for_selector(download_element_selector, state='visible', timeout=25000)
+                print("FIRELOAD/PLAYWRIGHT: Elemento de descarga encontrado.")
 
-                # Paso 1: Buscar y hacer clic en el botón de "preparación".
-                # Buscamos un botón que contenga el texto "Download". Es más genérico y robusto.
-                pre_download_button_selector = "//button[contains(., 'Download')]"
+                async with page.expect_download(timeout=25000) as download_info:
+                    print("FIRELOAD/PLAYWRIGHT: Haciendo clic para iniciar la descarga...")
+                    await page.click(download_element_selector)
                 
-                print(f"FIRELOAD/PLAYWRIGHT: Buscando el botón de PREPARACIÓN: '{pre_download_button_selector}'")
-                await page.wait_for_selector(pre_download_button_selector, state='visible', timeout=20000)
-                
-                print("FIRELOAD/PLAYWRIGHT: Botón de preparación encontrado. Haciendo clic...")
-                await page.click(pre_download_button_selector)
-                
-                # Paso 2: Esperar a que el BOTÓN FINAL aparezca después del clic.
-                print("FIRELOAD/PLAYWRIGHT: Clic realizado. Esperando el botón de DESCARGA FINAL...")
-                final_download_button_selector = "a#download-button"
-                
-                await page.wait_for_selector(final_download_button_selector, state='visible', timeout=20000)
-                
-                print("FIRELOAD/PLAYWRIGHT: ¡Botón de descarga final encontrado! Extrayendo enlace...")
-                direct_link = await page.get_attribute(final_download_button_selector, 'href')
+                download = await download_info.value
+                direct_link = download.url
+                print(f"FIRELOAD/PLAYWRIGHT: ¡Descarga iniciada! Enlace directo obtenido: {direct_link}")
 
-                if not direct_link:
-                    raise DirectDownloadLinkException("Botón final encontrado, pero no se pudo extraer el enlace (href).")
-                
                 return direct_link
-                
+
         except Exception as e:
             error_message = f"Error con Playwright: {type(e).__name__} - {e}"
             print(f"FIRELOAD/PLAYWRIGHT: {error_message}")
