@@ -20,6 +20,7 @@ from base64 import b64decode, b64encode
 import asyncio
 from playwright.async_api import async_playwright
 import os # Necesario para leer las variables de entorno
+import base64
 
 # ===============================================================
 #  PIEZAS AUXILIARES NECESARIAS
@@ -101,46 +102,42 @@ async def fireload_async(url):
             await page.wait_for_selector(download_element_selector, state='visible', timeout=25000)
             print("FIRELOAD/DETECTIVE: Elemento encontrado.")
 
-            # Preparamos al espía de red
             requests_log = []
             page.on("request", lambda request: requests_log.append(request.url))
 
-            # Hacemos clic
             print("FIRELOAD/DETECTIVE: Haciendo clic...")
             await page.click(download_element_selector)
             
-            # La espera paciente
             print("FIRELOAD/DETECTIVE: Esperando pacientemente durante 10 segundos...")
             await page.wait_for_timeout(10000)
             
-            # --- INTERROGATORIO ---
             print("FIRELOAD/DETECTIVE: ¡Tiempo de espera terminado! Iniciando interrogatorio...")
             
-            # 1. Intentar encontrar el enlace de nuevo
             try:
-                final_button_selector = "a#download-button" # El botón que debería haber aparecido
+                final_button_selector = "a#download-button"
                 final_link = await page.get_attribute(final_button_selector, 'href', timeout=1000)
                 if final_link:
                     print(f"FIRELOAD/DETECTIVE: ¡Éxito! Enlace encontrado después de la espera: {final_link}")
                     return final_link
             except:
-                pass # Si no lo encuentra, no es un error, seguimos investigando
+                pass
 
-            # 2. Si no, revisamos el log de peticiones de red
-            print("FIRELOAD/DETECTIVE: El enlace no apareció directamente. Revisando peticiones de red...")
+            print("FIRELOAD/DETECTIVE: Revisando peticiones de red...")
             for req_url in requests_log:
                 if "download_token" in req_url:
                     print(f"FIRELOAD/DETECTIVE: ¡PISTA ENCONTRADA EN RED! URL con 'download_token': {req_url}")
                     return req_url
 
-            # 3. Si aún no hay nada, tomamos las pruebas
             print("FIRELOAD/DETECTIVE: No se encontró un enlace claro. Recopilando pruebas finales...")
             
-            # Tomamos una screenshot y la imprimimos en base64 para verla en los logs
-            screenshot_b64 = await page.screenshot(full_page=True, encoding="base64")
+            # --- CORRECCIÓN DE LA CAPTURA DE PANTALLA ---
+            # Tomamos la screenshot como bytes
+            screenshot_bytes = await page.screenshot(full_page=True)
+            # La convertimos a base64 para poder imprimirla en los logs
+            screenshot_b64 = base64.b64encode(screenshot_bytes).decode('utf-8')
+            
             print(f"FIRELOAD/DETECTIVE: --- PRUEBA A (SCREENSHOT) ---\n{screenshot_b64}\n--- FIN PRUEBA A ---")
 
-            # Obtenemos el HTML final
             final_html = await page.content()
             print(f"FIRELOAD/DETECTIVE: --- PRUEBA B (HTML FINAL) ---\n{final_html[:2000]}\n--- FIN PRUEBA B ---")
 
